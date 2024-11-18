@@ -59,8 +59,7 @@ router.post('/register', async (req, res) => {
     const verificationToken = jwt.sign({ email }, process.env.JWT_SECRET, { expiresIn: '1h' });
 
     // Crear el enlace de verificación
-    const verificationLink = `http://master-bikas.com/verify-email?token=${verificationToken}`;
-
+    const verificationLink = `http://master-bikas.com/api/users/verify-email?token=${verificationToken}`;
 
     // Configurar el transporte de nodemailer
     const transporter = nodemailer.createTransport({
