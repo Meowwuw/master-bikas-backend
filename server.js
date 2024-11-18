@@ -12,7 +12,10 @@ import recoverPasswordRoutes from './routes/recoverPasswordRoutes.js';
 import commentRoutes from './routes/commentRoutes.js';
 import courseRoutes from './routes/courseRoutes.js';
 import profileRoutes from './routes/profileRoutes.js';
-
+import testimonialsRoutes from './routes/testimonialsRoutes.js';
+import videoRoutes from './routes/videoRoutes.js';
+import questionRoutes from './routes/questionRoutes.js';
+import addressRoutes from "./routes/addressRoutes.js";
 
 dotenv.config();
 
@@ -34,14 +37,18 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/users', recoverPasswordRoutes);
 app.use('/api/users', commentRoutes);
-app.use('/api/perfil', profileRoutes); 
+app.use('/api', profileRoutes); 
+app.use('/api', questionRoutes); 
 app.use('/api', courseRoutes);
+app.use('/api', testimonialsRoutes);
+app.use("/api", videoRoutes);
+app.use("/api", addressRoutes);
 
 
 
 // Ruta raíz
 app.get('/', (req, res) => {
-  res.send('API de Pagos con Yape');
+  res.send('Servidor corriendo');
 });
 
 // Iniciar el servidor

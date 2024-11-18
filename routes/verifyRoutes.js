@@ -12,7 +12,7 @@ router.get('/verify-email', async (req, res) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     // Actualizar el estado del usuario en la base de datos
-    const [result] = await pool.query('UPDATE users SET verified = ? WHERE email = ?', [true, decoded.email]);
+    const [result] = await pool.query('UPDATE USERS SET VERIFIED = ? WHERE EMAIL = ?', [true, decoded.email]);
 
     if (result.affectedRows === 0) {
       return res.status(400).json({ message: 'Usuario no encontrado o ya verificado.' });
