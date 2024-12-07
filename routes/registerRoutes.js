@@ -38,14 +38,28 @@ router.post('/register', async (req, res) => {
     const nickname = `${names.charAt(0).toUpperCase()}${lastName.split(' ')[0]}`;
     console.log('Apodo generado:', nickname);
 
+    console.log("Datos a insertar:", {
+      names,
+      lastName,
+      gender,
+      email,
+      countryCode,
+      telephone,
+      birthdate,
+      hashedPassword,
+      nickname,
+    });
+    
+
     // Insertar el nuevo usuario en la base de datos
     const [result] = await pool.query(
       `INSERT INTO USERS 
-      (NAMES, LAST_NAME, GENDER, EMAIL, COUNTRY_CODE, TELEPHONE, BIRTHDATE, PASSWORD, POINTS, STATUS, CREATED_AT, UPDATED_AT, NICKNAME) 
+      (NAMES, LAST_NAME, NICKNAME,GENDER, EMAIL, COUNTRY_CODE, TELEPHONE, BIRTHDATE, PASSWORD, POINTS, STATUS, CREATED_AT, UPDATED_AT) 
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW(), ?)`,
       [
         names,
         lastName,
+        nickname, 
         gender,
         email,
         countryCode,
@@ -54,7 +68,7 @@ router.post('/register', async (req, res) => {
         hashedPassword,
         0, // Puntos iniciales
         1, // Estado activo por defecto
-        nickname, // Apodo generado
+        
       ]
     );
 
