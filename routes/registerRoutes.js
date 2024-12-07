@@ -55,8 +55,8 @@ router.post('/register', async (req, res) => {
     // Insertar el nuevo usuario en la base de datos
     const [result] = await pool.query(
       `INSERT INTO USERS 
-      (NAMES, LAST_NAME, NICKNAME,GENDER, EMAIL, COUNTRY_CODE, TELEPHONE, BIRTHDATE, PASSWORD, POINTS, STATUS, CREATED_AT, UPDATED_AT) 
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW(), ?)`,
+      (NAMES, LAST_NAME, NICKNAME, GENDER, EMAIL, COUNTRY_CODE, TELEPHONE, BIRTHDATE, PASSWORD, POINTS, STATUS, CREATED_AT, UPDATED_AT) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
       [
         names,
         lastName,
@@ -69,7 +69,6 @@ router.post('/register', async (req, res) => {
         hashedPassword,
         0, // Puntos iniciales
         1, // Estado activo por defecto
-        
       ]
     );
 
