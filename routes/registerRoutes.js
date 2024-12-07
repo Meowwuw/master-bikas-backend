@@ -1,10 +1,18 @@
+import express from 'express';
+import bcrypt from 'bcryptjs';
+import pool from '../db.js';
+import jwt from 'jsonwebtoken';
+import nodemailer from 'nodemailer';
+
+const router = express.Router();
+
 router.post('/register', async (req, res) => {
   const {
     names,
     lastName,
     gender,
     email,
-    countryCode,
+    countryCode = '+51', // Valor por defecto
     telephone,
     birthdate,
     password,
@@ -12,15 +20,13 @@ router.post('/register', async (req, res) => {
 
   try {
     // Verificar si el correo ya está registrado
-    const [existingUser] = await pool.query('SELECT * FROM USERS WHERE email = ?', [email]);
-
+    const [existingUser] = await pool.query('SELECT * FROM USERS WHERE EMAIL = ?', [email]);
     if (existingUser.length > 0) {
       return res.status(400).json({ error: 'El correo ya está registrado.' });
     }
 
     // Verificar si el número de teléfono ya está registrado
-    const [existingPhone] = await pool.query('SELECT * FROM USERS WHERE telephone = ?', [telephone]);
-
+    const [existingPhone] = await pool.query('SELECT * FROM USERS WHERE TELEPHONE = ?', [telephone]);
     if (existingPhone.length > 0) {
       return res.status(400).json({ error: 'El número de teléfono ya está registrado.' });
     }
@@ -29,12 +35,13 @@ router.post('/register', async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Generar el apodo
-    const nickname = `${names[0].toUpperCase()}${lastName.split(' ')[0]}`;
+    const nickname = `${names.charAt(0).toUpperCase()}${lastName.split(' ')[0]}`;
+    console.log('Apodo generado:', nickname);
 
     // Insertar el nuevo usuario en la base de datos
     const [result] = await pool.query(
       `INSERT INTO USERS 
-      (names, last_name, gender, email, country_code, telephone, birthdate, password, points, status, created_at, updated_at, nickname) 
+      (NAMES, LAST_NAME, GENDER, EMAIL, COUNTRY_CODE, TELEPHONE, BIRTHDATE, PASSWORD, POINTS, STATUS, CREATED_AT, UPDATED_AT, NICKNAME) 
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW(), ?)`,
       [
         names,
@@ -45,11 +52,13 @@ router.post('/register', async (req, res) => {
         telephone,
         birthdate,
         hashedPassword,
-        0, // Points inicial
-        1, // Status activo por defecto
+        0, // Puntos iniciales
+        1, // Estado activo por defecto
         nickname, // Apodo generado
       ]
     );
+
+    console.log('Usuario insertado con ID:', result.insertId);
 
     // Generar un token de verificación
     const verificationToken = jwt.sign({ email }, process.env.JWT_SECRET, { expiresIn: '1h' });
@@ -82,7 +91,7 @@ router.post('/register', async (req, res) => {
     });
   } catch (error) {
     console.error('Error al registrar el usuario:', error);
-    res.status(500).json({ error: 'Error al registrar el usuario' });
+    res.status(500).json({ error: 'Error al registrar el usuario.' });
   }
 });
 
