@@ -41,13 +41,14 @@ router.post('/register', async (req, res) => {
     console.log("Datos a insertar:", {
       names,
       lastName,
+      nickname,
       gender,
       email,
       countryCode,
       telephone,
       birthdate,
-      hashedPassword,
-      nickname,
+      hashedPassword
+      
     });
     
 
