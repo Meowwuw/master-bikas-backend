@@ -81,7 +81,6 @@ router.put("/perfil", verifyToken, async (req, res) => {
       WHERE ID_USER = ?
     `;
 
-    // Convertir valores vacíos a NULL
     const values = [
       NAMES || null,
       LAST_NAME || null,
@@ -110,14 +109,13 @@ router.put("/perfil", verifyToken, async (req, res) => {
 
 router.put("/perfil/add-points", verifyToken, async (req, res) => {
   const userId = req.user.ID_USER;
-  const { points } = req.body; // Recibe los puntos desde el frontend
+  const { points } = req.body; 
 
   if (!points) {
     return res.status(400).json({ message: "Los puntos son obligatorios." });
   }
 
   try {
-    // Incrementar los puntos del usuario en la base de datos
     const query = `
       UPDATE USERS 
       SET POINTS = COALESCE(POINTS, 0) + ? 
@@ -160,13 +158,25 @@ router.post(
       const uploadResult = await s3.upload(params).promise();
       const fileUrl = uploadResult.Location;
 
-      res.status(200).json({ message: "Comprobante subido exitosamente.", url: fileUrl });
+      const query = `
+        UPDATE your_table_name
+        SET CUSTOM_PAYMENT_URL = ?
+        WHERE ID_USER = ?
+      `;
+      await db.execute(query, [fileUrl, userId]);
+
+      res
+        .status(200)
+        .json({ message: "Comprobante subido exitosamente.", url: fileUrl });
     } catch (error) {
       console.error("Error al subir el comprobante:", error);
-      res.status(500).json({ message: "Error al subir el comprobante de pago." });
+      res
+        .status(500)
+        .json({ message: "Error al subir el comprobante de pago." });
     }
   }
 );
+
 
 // Subir imagen de la pregunta
 router.post(
@@ -191,13 +201,26 @@ router.post(
       const uploadResult = await s3.upload(params).promise();
       const fileUrl = uploadResult.Location;
 
-      res.status(200).json({ message: "Imagen de la pregunta subida exitosamente.", url: fileUrl });
+      // Guardar la URL en la base de datos
+      const query = `
+        UPDATE your_table_name
+        SET CUSTOM_QUESTION_URL = ?
+        WHERE ID_USER = ?
+      `;
+      await db.execute(query, [fileUrl, userId]);
+
+      res
+        .status(200)
+        .json({ message: "Imagen de la pregunta subida exitosamente.", url: fileUrl });
     } catch (error) {
       console.error("Error al subir la imagen de la pregunta:", error);
-      res.status(500).json({ message: "Error al subir la imagen de la pregunta." });
+      res
+        .status(500)
+        .json({ message: "Error al subir la imagen de la pregunta." });
     }
   }
 );
+
 
 // Registrar pregunta personalizada
 router.post("/pregunta", verifyToken, async (req, res) => {
@@ -207,12 +230,11 @@ router.post("/pregunta", verifyToken, async (req, res) => {
     SCHOOL_NAME,
     CUSTOM_QUESTION_URL,
     CUSTOM_PAYMENT_URL,
-    WHATSAPP_OPTION, // Nuevo campo para WhatsApp
+    WHATSAPP_OPTION, 
   } = req.body;
 
   const userId = req.user.ID_USER;
 
-  // Validación de datos obligatorios
   if (!COURSE_ID || !SCHOOL_CATEGORY || (!CUSTOM_QUESTION_URL && !WHATSAPP_OPTION)) {
     return res.status(400).json({ message: "Faltan datos obligatorios." });
   }

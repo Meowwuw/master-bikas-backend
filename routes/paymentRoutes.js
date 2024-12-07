@@ -5,24 +5,32 @@ import verifyToken from '../middleware/verifyToken.js';
 
 const router = express.Router();
 
-// Ruta para manejar el pago
 router.post('/confirm', verifyToken, async (req, res) => {
-  const { amount, payment_method, currency, description } = req.body;
+  const { question_id, payment_method, currency, description } = req.body;
 
   if (!req.user || !req.user.id) {
     return res.status(401).json({ message: 'Usuario no autenticado.' });
   }
 
-  if (!amount || isNaN(amount) || amount <= 0) {
-    return res.status(400).json({ message: 'Monto no válido.' });
+  if (!question_id) {
+    return res.status(400).json({ message: 'ID de la pregunta es obligatorio.' });
   }
 
   try {
-    // Inserta el pago en la base de datos
+    // Obtener el monto de la pregunta
+    const [question] = await pool.query('SELECT AMOUNT FROM QUESTION WHERE ID = ?', [question_id]);
+
+    if (question.length === 0) {
+      return res.status(404).json({ message: 'Pregunta no encontrada.' });
+    }
+
+    const amount = question[0].AMOUNT;
+
+    // Insertar el pago en la base de datos
     const [result] = await pool.query(
-      `INSERT INTO PAYMENTS (ID_USER, AMOUNT, PAYMENT_METHOD, CURRENCY, STATUS, DESCRIPTION_PAYMENT) 
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [req.user.id, amount, payment_method || 'YAPE', currency || 'PEN', 'pendiente', description || 'Pago Yape']
+      `INSERT INTO PAYMENTS (ID_USER, AMOUNT, PAYMENT_METHOD, CURRENCY, STATUS, DESCRIPTION_PAYMENT, QUESTION_ID) 
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [req.user.id, amount, payment_method || 'YAPE', currency || 'PEN', 'pendiente', description || 'Pago Yape', question_id]
     );
 
     // Configuración del correo

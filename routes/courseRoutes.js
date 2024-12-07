@@ -94,7 +94,7 @@ router.get("/questions/:questionId", async (req, res) => {
 
   try {
     const [questions] = await pool.query(
-      "SELECT QUESTION_ID, QUESTION_TEXT, QUESTION_IMAGE, POINTS, VIEWS, CREATED_AT FROM QUESTION WHERE QUESTION_ID = ?",
+      "SELECT QUESTION_ID, QUESTION_TEXT, QUESTION_IMAGE, POINTS, VIEWS, AMOUNT, CREATED_AT FROM QUESTION WHERE QUESTION_ID = ?",
       [questionId]
     );
 
@@ -108,6 +108,7 @@ router.get("/questions/:questionId", async (req, res) => {
     res.status(500).json({ message: "Error interno del servidor." });
   }
 });
+
 
 // Manejar intentos de desbloqueo
 router.post("/users/attempts/use", verifyToken, async (req, res) => {

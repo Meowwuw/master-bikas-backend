@@ -1,11 +1,3 @@
-import express from 'express';
-import bcrypt from 'bcryptjs';
-import pool from '../db.js';
-import jwt from 'jsonwebtoken';
-import nodemailer from 'nodemailer';
-
-const router = express.Router();
-
 router.post('/register', async (req, res) => {
   const {
     names,
@@ -36,11 +28,14 @@ router.post('/register', async (req, res) => {
     // Encriptar la contraseña
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // Generar el apodo
+    const nickname = `${names[0].toUpperCase()}${lastName.split(' ')[0]}`;
+
     // Insertar el nuevo usuario en la base de datos
     const [result] = await pool.query(
       `INSERT INTO USERS 
-      (names, last_name, gender, email, country_code, telephone, birthdate, password, points, status, created_at, updated_at) 
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+      (names, last_name, gender, email, country_code, telephone, birthdate, password, points, status, created_at, updated_at, nickname) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW(), ?)`,
       [
         names,
         lastName,
@@ -52,6 +47,7 @@ router.post('/register', async (req, res) => {
         hashedPassword,
         0, // Points inicial
         1, // Status activo por defecto
+        nickname, // Apodo generado
       ]
     );
 
@@ -85,7 +81,7 @@ router.post('/register', async (req, res) => {
       message: 'Usuario registrado correctamente. Revisa tu correo para verificar tu cuenta.',
     });
   } catch (error) {
-    console.error(error);
+    console.error('Error al registrar el usuario:', error);
     res.status(500).json({ error: 'Error al registrar el usuario' });
   }
 });
