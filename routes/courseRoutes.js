@@ -109,6 +109,30 @@ router.get("/questions/:questionId", async (req, res) => {
   }
 });
 
+//Mostrar respuestas
+router.get('/answers/:questionId', async (req, res) => {
+  const { questionId } = req.params;
+  console.log('Recibido questionId:', questionId);
+
+  try {
+    const [rows] = await pool.query(
+      'SELECT LINK FROM ANSWER WHERE QUESTION_ID = ?',
+      [questionId]
+    );
+
+    console.log('Resultados de la consulta:', rows);
+
+    if (rows.length === 0) {
+      return res.status(404).json({ message: 'No se encontró una respuesta para esta pregunta.' });
+    }
+
+    res.status(200).json(rows[0]); // Devuelve la respuesta encontrada
+  } catch (error) {
+    console.error('Error al obtener la respuesta:', error);
+    res.status(500).json({ message: 'Error interno del servidor.' });
+  }
+});
+
 
 // Manejar intentos de desbloqueo
 router.post("/users/attempts/use", verifyToken, async (req, res) => {

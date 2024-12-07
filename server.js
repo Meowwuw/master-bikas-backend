@@ -28,8 +28,7 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 // Rutas
-app.use('/api/payments', paymentRoutes);
-app.use('/api/admin', paymentRoutes); 
+app.use('/api', paymentRoutes);
 app.use('/api/users', registerRoutes); 
 app.use('/api/users', loginRoutes); 
 app.use('/api/users', verifyRoutes); 

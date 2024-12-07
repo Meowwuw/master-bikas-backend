@@ -5,10 +5,10 @@ import verifyToken from '../middleware/verifyToken.js';
 
 const router = express.Router();
 
-router.post('/confirm', verifyToken, async (req, res) => {
+router.post('/payments-confirm', verifyToken, async (req, res) => {
   const { question_id, payment_method, currency, description } = req.body;
 
-  if (!req.user || !req.user.id) {
+  if (!req.user || !req.user.ID_USER) {
     return res.status(401).json({ message: 'Usuario no autenticado.' });
   }
 
@@ -17,8 +17,8 @@ router.post('/confirm', verifyToken, async (req, res) => {
   }
 
   try {
-    // Obtener el monto de la pregunta
-    const [question] = await pool.query('SELECT AMOUNT FROM QUESTION WHERE ID = ?', [question_id]);
+    // Cambiar ID por QUESTION_ID
+    const [question] = await pool.query('SELECT AMOUNT FROM QUESTION WHERE QUESTION_ID = ?', [question_id]);
 
     if (question.length === 0) {
       return res.status(404).json({ message: 'Pregunta no encontrada.' });
@@ -28,10 +28,22 @@ router.post('/confirm', verifyToken, async (req, res) => {
 
     // Insertar el pago en la base de datos
     const [result] = await pool.query(
-      `INSERT INTO PAYMENTS (ID_USER, AMOUNT, PAYMENT_METHOD, CURRENCY, STATUS, DESCRIPTION_PAYMENT, QUESTION_ID) 
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [req.user.id, amount, payment_method || 'YAPE', currency || 'PEN', 'pendiente', description || 'Pago Yape', question_id]
+      `INSERT INTO PAYMENTS (ID_USER, AMOUNT, PAYMENT_METHOD, CURRENCY, STATUS, DESCRIPTION_PAYMENT, QUESTION_ID, DATESTAMP) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        req.user.ID_USER,
+        amount,
+        payment_method || 'YAPE',
+        currency || 'PEN',
+        'pendiente',
+        description || 'Pago Yape',
+        question_id,
+        new Date(), // Fecha y hora actual
+      ]
     );
+    
+
+    console.log("Pago registrado en la base de datos:", result);
 
     // Configuración del correo
     const transporter = nodemailer.createTransport({
@@ -50,7 +62,10 @@ router.post('/confirm', verifyToken, async (req, res) => {
     };
 
     await transporter.sendMail(mailOptions);
-    return res.status(200).json({ message: 'Pago registrado y correo enviado. Espera 5 minutos para la confirmación.' });
+
+    return res.status(200).json({
+      message: 'Pago registrado y correo enviado. Espera 5 minutos para la confirmación.',
+    });
   } catch (error) {
     console.error('Error al procesar el pago:', error);
     return res.status(500).json({ message: 'Hubo un error al procesar el pago.' });
@@ -60,48 +75,78 @@ router.post('/confirm', verifyToken, async (req, res) => {
 
 router.get('/payments', async (req, res) => {
   try {
-    const [rows] = await pool.query(
-      'SELECT PAYMENTS.PAYMENT_ID, USERS.EMAIL, PAYMENTS.STATUS, PAYMENTS.AMOUNT FROM PAYMENTS JOIN USERS ON PAYMENTS.ID_USER = USERS.ID_USER'
-    );
+    const [rows] = await pool.query(`
+      SELECT 
+        PAYMENTS.PAYMENT_ID AS id, 
+        USERS.EMAIL AS email, 
+        PAYMENTS.STATUS AS status, 
+        PAYMENTS.AMOUNT AS amount 
+      FROM PAYMENTS 
+      JOIN USERS ON PAYMENTS.ID_USER = USERS.ID_USER
+    `);
     res.status(200).json(rows);
   } catch (error) {
     console.error('Error al obtener los pagos:', error);
     res.status(500).json({ message: 'Error al obtener los pagos' });
   }
 });
+router.put('/payments/:id', async (req, res) => {
+  const { id } = req.params;
+  const { status, amount, description } = req.body;
 
-router.post('/update-payment', async (req, res) => {
-  const { id, status, amount, description } = req.body;
+  // Define los valores válidos para el estado
+  const validStatuses = ['PENDIENTE', 'PAGADO', 'CANCELADO', 'DEVOLUCION'];
+
+  if (!validStatuses.includes(status)) {
+    return res.status(400).json({ message: 'Estado no válido. Usa: PENDIENTE, PAGADO, CANCELADO o DEVOLUCION.' });
+  }
 
   try {
     const [result] = await pool.query(
       `UPDATE PAYMENTS 
        SET STATUS = ?, AMOUNT = ?, DESCRIPTION_PAYMENT = ? 
        WHERE PAYMENT_ID = ?`,
-      [status, amount, description || 'Actualización del pago', id]
+      [status, parseFloat(amount).toFixed(3), description || 'Actualización del pago', id]
     );
 
     if (result.affectedRows === 0) {
-      return res.status(404).json({ message: 'Pago no encontrado' });
+      return res.status(404).json({ message: 'Pago no encontrado.' });
     }
 
-    res.status(200).json({ message: 'Pago actualizado correctamente' });
+    res.status(200).json({ message: 'Pago actualizado correctamente.' });
   } catch (error) {
     console.error('Error al actualizar el pago:', error);
-    res.status(500).json({ message: 'Error al actualizar el pago' });
+    res.status(500).json({ message: 'Error al actualizar el pago.' });
   }
 });
 
+router.delete('/payments/:id', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    // Attempt to delete the payment
+    const [result] = await pool.query('DELETE FROM PAYMENTS WHERE PAYMENT_ID = ?', [id]);
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: 'Pago no encontrado.' });
+    }
+
+    res.status(200).json({ message: 'Pago eliminado correctamente.' });
+  } catch (error) {
+    console.error('Error al eliminar el pago:', error);
+    res.status(500).json({ message: 'Error al eliminar el pago.' });
+  }
+});
 
 router.get('/check-payment-status', verifyToken, async (req, res) => {
   try {
     const [result] = await pool.query(
-      'SELECT STATUS FROM PAYMENTS WHERE ID_USER = ? ORDER BY UPDATED_AT DESC LIMIT 1',
+      'SELECT STATUS, QUESTION_ID FROM PAYMENTS WHERE ID_USER = ? ORDER BY UPDATED_AT DESC LIMIT 1',
       [req.user.ID_USER]
     );
 
-    if (result.length > 0 && result[0].STATUS === 'confirmado') {
-      return res.status(200).json({ status: 'confirmado' });
+    if (result.length > 0 && (result[0].STATUS === 'confirmado' || result[0].STATUS === 'PAGADO')) {
+      return res.status(200).json({ status: 'confirmado', questionId: result[0].QUESTION_ID });
     } else {
       return res.status(200).json({ status: 'pendiente' });
     }
@@ -111,6 +156,26 @@ router.get('/check-payment-status', verifyToken, async (req, res) => {
   }
 });
 
+
+router.get('/check-payment-status/:questionId', verifyToken, async (req, res) => {
+  const { questionId } = req.params;
+
+  try {
+    const [result] = await pool.query(
+      'SELECT STATUS FROM PAYMENTS WHERE ID_USER = ? AND QUESTION_ID = ? ORDER BY UPDATED_AT DESC LIMIT 1',
+      [req.user.ID_USER, questionId]
+    );
+
+    if (result.length > 0 && (result[0].STATUS === 'confirmado' || result[0].STATUS === 'PAGADO')) {
+      return res.status(200).json({ status: 'confirmado' });
+    } else {
+      return res.status(200).json({ status: 'pendiente' });
+    }
+  } catch (error) {
+    console.error('Error al verificar el estado del pago:', error);
+    return res.status(500).json({ message: 'Error al verificar el estado del pago.' });
+  }
+});
 
 
 export default router;

@@ -45,8 +45,6 @@ router.get("/perfil", verifyToken, async (req, res) => {
   }
 });
 
-
-
 router.put("/perfil", verifyToken, async (req, res) => {
   const userId = req.user.ID_USER;
   const {
@@ -109,7 +107,7 @@ router.put("/perfil", verifyToken, async (req, res) => {
 
 router.put("/perfil/add-points", verifyToken, async (req, res) => {
   const userId = req.user.ID_USER;
-  const { points } = req.body; 
+  const { points } = req.body;
 
   if (!points) {
     return res.status(400).json({ message: "Los puntos son obligatorios." });
@@ -141,7 +139,8 @@ router.post(
   verifyToken,
   upload.single("file"),
   async (req, res) => {
-    const userId = req.user.ID_USER;
+    const userId = req.user.id;
+    console.log("userId:", userId);
 
     if (!req.file) {
       return res.status(400).json({ error: "No se proporcionó un archivo." });
@@ -157,34 +156,33 @@ router.post(
     try {
       const uploadResult = await s3.upload(params).promise();
       const fileUrl = uploadResult.Location;
+      console.log("fileUrl:", fileUrl);
 
       const query = `
-        UPDATE QUESTION
+        UPDATE CUSTOM_QUESTION
         SET CUSTOM_PAYMENT_URL = ?
         WHERE ID_USER = ?
       `;
-      await db.execute(query, [fileUrl, userId]);
+      const [result] = await pool.execute(query, [fileUrl || null, userId || null]);
 
-      res
-        .status(200)
-        .json({ message: "Comprobante subido exitosamente.", url: fileUrl });
+      res.status(200).json({
+        message: "Imagen de la pregunta subida exitosamente.",
+        url: fileUrl,
+      });
     } catch (error) {
-      console.error("Error al subir el comprobante:", error);
-      res
-        .status(500)
-        .json({ message: "Error al subir el comprobante de pago." });
+      console.error("Error al subir la imagen de la pregunta:", error);
+      res.status(500).json({ message: "Error al subir la imagen de la pregunta." });
     }
   }
 );
 
-
-// Subir imagen de la pregunta
 router.post(
   "/upload-question",
   verifyToken,
   upload.single("file"),
   async (req, res) => {
-    const userId = req.user.ID_USER;
+    const userId = req.user.id;
+    console.log("userId:", userId);
 
     if (!req.file) {
       return res.status(400).json({ error: "No se proporcionó un archivo." });
@@ -200,49 +198,69 @@ router.post(
     try {
       const uploadResult = await s3.upload(params).promise();
       const fileUrl = uploadResult.Location;
+      console.log("fileUrl:", fileUrl);
 
-      // Guardar la URL en la base de datos
       const query = `
-        UPDATE QUESTION
+        UPDATE CUSTOM_QUESTION
         SET CUSTOM_QUESTION_URL = ?
         WHERE ID_USER = ?
       `;
-      await db.execute(query, [fileUrl, userId]);
+      const [result] = await pool.execute(query, [fileUrl || null, userId || null]);
 
-      res
-        .status(200)
-        .json({ message: "Imagen de la pregunta subida exitosamente.", url: fileUrl });
+      res.status(200).json({
+        message: "Imagen de la pregunta subida exitosamente.",
+        url: fileUrl,
+      });
     } catch (error) {
       console.error("Error al subir la imagen de la pregunta:", error);
-      res
-        .status(500)
-        .json({ message: "Error al subir la imagen de la pregunta." });
+      res.status(500).json({ message: "Error al subir la imagen de la pregunta." });
     }
   }
 );
-
 
 // Registrar pregunta personalizada
 router.post("/pregunta", verifyToken, async (req, res) => {
   const {
     COURSE_ID,
+    USER_COURSE, 
     SCHOOL_CATEGORY,
     SCHOOL_NAME,
     CUSTOM_QUESTION_URL,
     CUSTOM_PAYMENT_URL,
-    WHATSAPP_OPTION, 
+    WHATSAPP_OPTION,
   } = req.body;
 
   const userId = req.user.ID_USER;
 
-  if (!COURSE_ID || !SCHOOL_CATEGORY || (!CUSTOM_QUESTION_URL && !WHATSAPP_OPTION)) {
-    return res.status(400).json({ message: "Faltan datos obligatorios." });
+  console.log("Datos recibidos en el backend:", {
+    COURSE_ID,
+    USER_COURSE,
+    SCHOOL_CATEGORY,
+    SCHOOL_NAME,
+    CUSTOM_QUESTION_URL,
+    CUSTOM_PAYMENT_URL,
+    WHATSAPP_OPTION,
+  });
+
+  // Validar que al menos uno de COURSE_ID o USER_COURSE esté presente
+  if (!COURSE_ID && !USER_COURSE) {
+    return res.status(400).json({
+      message: "Se requiere un COURSE_ID o un USER_COURSE válido.",
+    });
+  }
+
+  if (!SCHOOL_CATEGORY || (!CUSTOM_QUESTION_URL && !WHATSAPP_OPTION)) {
+    return res.status(400).json({
+      message: "Faltan datos obligatorios.",
+    });
   }
 
   const amount =
-    SCHOOL_CATEGORY.toLowerCase() === "colegio" || SCHOOL_CATEGORY.toLowerCase() === "academia"
+    SCHOOL_CATEGORY.toLowerCase() === "colegio" ||
+    SCHOOL_CATEGORY.toLowerCase() === "academia"
       ? 1
-      : SCHOOL_CATEGORY.toLowerCase() === "instituto" || SCHOOL_CATEGORY.toLowerCase() === "universidad"
+      : SCHOOL_CATEGORY.toLowerCase() === "instituto" ||
+        SCHOOL_CATEGORY.toLowerCase() === "universidad"
       ? 3
       : null;
 
@@ -251,22 +269,60 @@ router.post("/pregunta", verifyToken, async (req, res) => {
   }
 
   try {
+    let courseName = null;
+
+    // Si hay un COURSE_ID, obtener el COURSE_NAME de la tabla COURSES
+    if (COURSE_ID) {
+      console.log("Consultando el COURSE_NAME para COURSE_ID:", COURSE_ID);
+      const [rows] = await pool.query(
+        `SELECT COURSE_NAME FROM COURSES WHERE COURSE_ID = ?`,
+        [COURSE_ID]
+      );
+
+      if (rows.length === 0) {
+        return res
+          .status(404)
+          .json({ message: `No se encontró un curso con ID ${COURSE_ID}.` });
+      }
+
+      courseName = rows[0].COURSE_NAME;
+      console.log("COURSE_NAME obtenido:", courseName);
+    }
+
     // Inserción de datos en la base de datos
-    const [result] = await pool.query(
-      `INSERT INTO CUSTOM_QUESTION 
-        (ID_USER, COURSE_ID, SCHOOL_CATEGORY, SCHOOL_NAME, AMOUNT, CUSTOM_QUESTION_URL, CUSTOM_PAYMENT_URL, WHATSAPP_OPTION) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        userId,
-        COURSE_ID,
-        SCHOOL_CATEGORY,
-        SCHOOL_NAME || null,
-        amount,
-        CUSTOM_QUESTION_URL || null,
-        CUSTOM_PAYMENT_URL || null,
-        WHATSAPP_OPTION || false, // Registrar la opción de WhatsApp
-      ]
-    );
+    const query = `
+      INSERT INTO CUSTOM_QUESTION 
+      (ID_USER, COURSE_ID, USER_COURSE, COURSE_NAME, SCHOOL_CATEGORY, SCHOOL_NAME, AMOUNT, CUSTOM_QUESTION_URL, CUSTOM_PAYMENT_URL, WHATSAPP_OPTION) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+
+    console.log("Ejecutando consulta SQL con los siguientes valores:");
+    console.log({
+      ID_USER: userId,
+      COURSE_ID: COURSE_ID || null,
+      USER_COURSE: USER_COURSE || null,
+      COURSE_NAME: courseName || USER_COURSE || null, // COURSE_NAME del curso existente o el curso personalizado
+      SCHOOL_CATEGORY,
+      SCHOOL_NAME,
+      AMOUNT: amount,
+      CUSTOM_QUESTION_URL,
+      CUSTOM_PAYMENT_URL,
+      WHATSAPP_OPTION: WHATSAPP_OPTION || false,
+    });
+
+    const [result] = await pool.query(query, [
+      userId,
+      COURSE_ID || null,
+      USER_COURSE || null, 
+      courseName || USER_COURSE || null, 
+      SCHOOL_CATEGORY,
+      SCHOOL_NAME || null,
+      amount,
+      CUSTOM_QUESTION_URL || null,
+      CUSTOM_PAYMENT_URL || null,
+      WHATSAPP_OPTION || false,
+    ]);
+
+    console.log("Consulta ejecutada exitosamente:", result);
 
     // Generación del número de ticket
     const ticketId = `SOL-${result.insertId}`;
@@ -276,6 +332,6 @@ router.post("/pregunta", verifyToken, async (req, res) => {
     res.status(500).json({ message: "Error interno del servidor." });
   }
 });
-  
+
 
 export default router;
