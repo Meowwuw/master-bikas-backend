@@ -29,6 +29,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 // Rutas
 app.use('/api', paymentRoutes);
+console.log("Rutas montadas para /api/payments")
 app.use('/api/users', registerRoutes); 
 app.use('/api/users', loginRoutes); 
 app.use('/api/users', verifyRoutes); 
