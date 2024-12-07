@@ -159,7 +159,7 @@ router.post(
       const fileUrl = uploadResult.Location;
 
       const query = `
-        UPDATE your_table_name
+        UPDATE QUESTION
         SET CUSTOM_PAYMENT_URL = ?
         WHERE ID_USER = ?
       `;
@@ -203,7 +203,7 @@ router.post(
 
       // Guardar la URL en la base de datos
       const query = `
-        UPDATE your_table_name
+        UPDATE QUESTION
         SET CUSTOM_QUESTION_URL = ?
         WHERE ID_USER = ?
       `;
