@@ -35,8 +35,7 @@ router.post('/register', async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Generar el apodo
-    const nickname = `${names.charAt(0).toUpperCase()}${lastName.split(' ')[0]}`;
-    console.log('Apodo generado:', nickname);
+    const nickname = names.charAt(0).toUpperCase() + lastName.split(' ')[0];
 
     console.log("Datos a insertar:", {
       names,
