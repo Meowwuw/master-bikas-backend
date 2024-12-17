@@ -45,6 +45,27 @@ router.post("/courses", async (req, res) => {
   }
 });
 
+router.get("/courses/:courseId", async (req, res) => {
+  const { courseId } = req.params;
+
+  try {
+    const [course] = await pool.query(
+      "SELECT COURSE_ID, COURSE_NAME, IMAGE_URL, COURSE_DESCRIPTION FROM COURSES WHERE COURSE_ID = ?",
+      [courseId]
+    );
+
+    if (course.length === 0) {
+      return res.status(404).json({ message: "Curso no encontrado" });
+    }
+
+    res.status(200).json(course[0]); 
+  } catch (error) {
+    console.error("Error al obtener el curso:", error);
+    res.status(500).json({ error: "Error interno del servidor" });
+  }
+});
+
+
 // Obtener temas por ID de curso
 router.get("/courses/:courseId/topics", async (req, res) => {
   const { courseId } = req.params;

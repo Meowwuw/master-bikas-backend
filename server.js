@@ -16,6 +16,8 @@ import testimonialsRoutes from './routes/testimonialsRoutes.js';
 import videoRoutes from './routes/videoRoutes.js';
 import questionRoutes from './routes/questionRoutes.js';
 import addressRoutes from "./routes/addressRoutes.js";
+import contactRoutes from "./routes/contactRoutes.js";
+
 
 dotenv.config();
 
@@ -30,6 +32,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 // Rutas
 app.use('/api', paymentRoutes);
 console.log("Rutas montadas para /api/payments")
+app.use("/api", contactRoutes);
 app.use('/api/users', registerRoutes); 
 app.use('/api/users', loginRoutes); 
 app.use('/api/users', verifyRoutes); 

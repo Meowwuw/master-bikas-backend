@@ -63,7 +63,6 @@ router.put("/perfil", verifyToken, async (req, res) => {
   }
 
   try {
-    // Verificar si el usuario ya ha recibido el bono (10 puntos)
     const [user] = await pool.query(
       "SELECT BONUS FROM USERS WHERE ID_USER = ?",
       [userId]
@@ -73,9 +72,8 @@ router.put("/perfil", verifyToken, async (req, res) => {
       return res.status(404).json({ message: "Usuario no encontrado." });
     }
 
-    const hasBonus = user[0].BONUS; // BONUS = 1 indica que ya recibió los puntos
+    const hasBonus = user[0].BONUS; 
 
-    // Actualizar el perfil del usuario
     const query = `
       UPDATE USERS
       SET 

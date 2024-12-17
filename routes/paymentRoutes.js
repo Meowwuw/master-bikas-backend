@@ -27,6 +27,8 @@ router.post('/payments-confirm', verifyToken, async (req, res) => {
     const amount = question[0].AMOUNT;
 
     // Insertar el pago en la base de datos
+    const peruTime = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Lima' }));
+
     const [result] = await pool.query(
       `INSERT INTO PAYMENTS (ID_USER, AMOUNT, PAYMENT_METHOD, CURRENCY, STATUS, DESCRIPTION_PAYMENT, QUESTION_ID, DATESTAMP) 
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -35,10 +37,10 @@ router.post('/payments-confirm', verifyToken, async (req, res) => {
         amount,
         payment_method || 'YAPE',
         currency || 'PEN',
-        'pendiente',
+        'PENDIENTE',
         description || 'Pago Yape',
         question_id,
-        new Date(), // Fecha y hora actual
+        peruTime, 
       ]
     );
     
