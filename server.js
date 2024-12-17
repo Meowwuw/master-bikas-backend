@@ -44,19 +44,16 @@ app.use('/api', testimonialsRoutes);
 app.use("/api", videoRoutes);
 app.use("/api", addressRoutes);
 
-
-
 // Ruta raíz
 app.get('/', (req, res) => {
   res.send('Servidor corriendo');
 });
 
 // Iniciar el servidor
-
 app._router.stack.forEach(function (middleware) {
-  if (middleware.route) { // rutas registradas
+  if (middleware.route) { 
       console.log(`Ruta: ${middleware.route.path}`);
-  } else if (middleware.name === 'router') { // rutas anidadas
+  } else if (middleware.name === 'router') { 
       middleware.handle.stack.forEach(function (handler) {
           if (handler.route) {
               console.log(`Ruta anidada: ${handler.route.path}`);

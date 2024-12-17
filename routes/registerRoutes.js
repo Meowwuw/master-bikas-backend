@@ -72,9 +72,9 @@ router.post("/register", async (req, res) => {
         telephone,
         birthdate,
         hashedPassword,
-        0, // Puntos iniciales
-        1, // Estado activo por defecto
-        2, // Intentos restantes iniciales
+        0, 
+        1, 
+        2, 
       ]
     );
 

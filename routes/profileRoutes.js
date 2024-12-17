@@ -23,7 +23,6 @@ router.get("/perfil", verifyToken, async (req, res) => {
       return res.status(404).json({ message: "Perfil no encontrado" });
     }
 
-    // Si el usuario tiene un ADDRESS_ID, busca los detalles en la tabla ADDRESS
     const userProfile = profile[0];
     if (userProfile.ADDRESS_ID) {
       const [address] = await pool.query(
@@ -64,6 +63,19 @@ router.put("/perfil", verifyToken, async (req, res) => {
   }
 
   try {
+    // Verificar si el usuario ya ha recibido el bono (10 puntos)
+    const [user] = await pool.query(
+      "SELECT BONUS FROM USERS WHERE ID_USER = ?",
+      [userId]
+    );
+
+    if (user.length === 0) {
+      return res.status(404).json({ message: "Usuario no encontrado." });
+    }
+
+    const hasBonus = user[0].BONUS; // BONUS = 1 indica que ya recibió los puntos
+
+    // Actualizar el perfil del usuario
     const query = `
       UPDATE USERS
       SET 
@@ -75,9 +87,9 @@ router.put("/perfil", verifyToken, async (req, res) => {
         GENDER = ?,
         NICKNAME = ?,
         SCHOOL_NAME = ?,
-        ADDRESS_ID = ?
-      WHERE ID_USER = ?
-    `;
+        ADDRESS_ID = ?,
+        UPDATED_AT = CURRENT_TIMESTAMP
+      WHERE ID_USER = ?`;
 
     const values = [
       NAMES || null,
@@ -92,10 +104,19 @@ router.put("/perfil", verifyToken, async (req, res) => {
       userId,
     ];
 
-    const [result] = await pool.query(query, values);
+    await pool.query(query, values);
 
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ message: "Usuario no encontrado." });
+    // Si el usuario no ha recibido el bono, asignar los 10 puntos
+    if (!hasBonus) {
+      const bonusQuery = `
+        UPDATE USERS 
+        SET POINTS = POINTS + 10, BONUS = 1
+        WHERE ID_USER = ?`;
+      await pool.query(bonusQuery, [userId]);
+
+      return res.status(200).json({
+        message: "Perfil completado y se asignaron 10 puntos.",
+      });
     }
 
     res.status(200).json({ message: "Perfil actualizado exitosamente." });
@@ -104,6 +125,7 @@ router.put("/perfil", verifyToken, async (req, res) => {
     res.status(500).json({ message: "Error interno del servidor." });
   }
 });
+
 
 router.put("/perfil/add-points", verifyToken, async (req, res) => {
   const userId = req.user.ID_USER;
@@ -300,7 +322,7 @@ router.post("/pregunta", verifyToken, async (req, res) => {
       ID_USER: userId,
       COURSE_ID: COURSE_ID || null,
       USER_COURSE: USER_COURSE || null,
-      COURSE_NAME: courseName || USER_COURSE || null, // COURSE_NAME del curso existente o el curso personalizado
+      COURSE_NAME: courseName || USER_COURSE || null, 
       SCHOOL_CATEGORY,
       SCHOOL_NAME,
       AMOUNT: amount,
