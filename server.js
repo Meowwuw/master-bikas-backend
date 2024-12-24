@@ -53,18 +53,6 @@ app.get('/', (req, res) => {
   res.send('Servidor corriendo');
 });
 
-// Iniciar el servidor
-app._router.stack.forEach(function (middleware) {
-  if (middleware.route) { 
-      console.log(`Ruta: ${middleware.route.path}`);
-  } else if (middleware.name === 'router') { 
-      middleware.handle.stack.forEach(function (handler) {
-          if (handler.route) {
-              console.log(`Ruta anidada: ${handler.route.path}`);
-          }
-      });
-  }
-});
 
 
 app.listen(PORT, '0.0.0.0', () => {

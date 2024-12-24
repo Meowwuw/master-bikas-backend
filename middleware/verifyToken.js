@@ -8,6 +8,7 @@ const verifyToken = (req, res, next) => {
 
     if (!token) {
         console.log('No se proporcionó un token');
+        console.log('Middleware verifyToken invocado para:', req.method, req.originalUrl);
         return res.status(403).json({ error: 'Acceso denegado. No se proporcionó un token.' });
     }
 

@@ -5,6 +5,7 @@ const router = express.Router();
 
 // Obtener todos los testimonios con los nombres de los usuarios
 router.get('/testimonials', async (req, res) => {
+  console.log('Solicitud a /api/testimonials'); 
   try {
     const query = `
       SELECT 
