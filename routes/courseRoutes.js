@@ -92,7 +92,7 @@ router.get("/topics/:topicId/questions", async (req, res) => {
 
   try {
     const [questions] = await pool.query(
-      "SELECT QUESTION_ID, QUESTION_TEXT, QUESTION_IMAGE, POINTS, VIEWS, CREATED_AT FROM QUESTION WHERE TOPIC_ID = ?",
+      "SELECT QUESTION_ID, QUESTION_TEXT, QUESTION_IMAGE, POINTS, VIEWS, AMOUNT,CREATED_AT FROM QUESTION WHERE TOPIC_ID = ?",
       [topicId]
     );
 
