@@ -30,10 +30,10 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-app.use((req, res, next) => {
-  console.log(`Petición a: ${req.method} ${req.path}`);
-  next();
-});
+app.use(cors({
+  exposedHeaders: ['Authorization'],
+}));
+
 
 
 // Rutas
