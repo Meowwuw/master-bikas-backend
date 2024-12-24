@@ -6,7 +6,7 @@ const router = express.Router();
 
 // Ruta para obtener la lista de premios
 router.get("/prizes", verifyToken, async (req, res) => {
-  console.log("Solicitud recibida en /prizes");
+  console.log("Solicitud recibida en /prizes con token:", req.headers.authorization);
   try {
     const [results] = await pool.query(`
       SELECT 
@@ -22,13 +22,14 @@ router.get("/prizes", verifyToken, async (req, res) => {
       WHERE STOCK > 0 AND EXPIRATION_DATE >= CURDATE()
       ORDER BY CREATED_AT DESC
     `);
-    console.log("Resultados de premios:", results);
+    console.log("Premios obtenidos:", results);
     res.status(200).json(results);
   } catch (error) {
     console.error("Error al obtener los premios:", error);
     res.status(500).json({ error: "Error al obtener los premios" });
   }
 });
+
 
 
 export default router;

@@ -6,7 +6,6 @@ const router = express.Router();
 
 // Obtener los puntos del usuario
 router.get('/points', verifyToken, async (req, res) => {
-  console.log("Middleware ejecutado antes de acceder a la lógica de puntos");
   try {
     const [rows] = await pool.query('SELECT POINTS FROM USERS WHERE ID_USER = ?', [req.user.ID_USER]);
 
