@@ -8,6 +8,8 @@ const router = express.Router();
 
 router.post("/login", async (req, res) => {
   const { email, password, recaptchaToken } = req.body;
+  console.log("Token recibido en el backend:", recaptchaToken);
+
 
   if (!recaptchaToken) {
     return res
