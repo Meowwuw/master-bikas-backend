@@ -5,7 +5,8 @@ import verifyToken from '../middleware/verifyToken.js';
 const router = express.Router();
 
 // Ruta para obtener la lista de premios
-router.get('/prizes', verifyToken, async (req, res) => {
+router.get("/prizes", verifyToken, async (req, res) => {
+  console.log("Solicitud recibida en /prizes");
   try {
     const [results] = await pool.query(`
       SELECT 
@@ -21,12 +22,14 @@ router.get('/prizes', verifyToken, async (req, res) => {
       WHERE STOCK > 0 AND EXPIRATION_DATE >= CURDATE()
       ORDER BY CREATED_AT DESC
     `);
+    console.log("Resultados de premios:", results);
     res.status(200).json(results);
   } catch (error) {
-    console.error('Error al obtener los premios:', error);
-    res.status(500).json({ error: 'Error al obtener los premios' });
+    console.error("Error al obtener los premios:", error);
+    res.status(500).json({ error: "Error al obtener los premios" });
   }
 });
+
 
 export default router;
 
