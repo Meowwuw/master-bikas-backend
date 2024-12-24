@@ -1,10 +1,9 @@
 import jwt from "jsonwebtoken";
 
 const verifyToken = (req, res, next) => {
-    console.log("verifyToken middleware invocado");
 
     const token = req.headers["authorization"] || req.headers["Authorization"];
-    console.log("Middleware verifyToken invocado para:", req.method, req.originalUrl, token);
+    console.log("Token recibido:", token);
 
 
     if (!token) {
