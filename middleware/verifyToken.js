@@ -3,6 +3,7 @@ import jwt from "jsonwebtoken";
 const verifyToken = (req, res, next) => {
     console.log("verifyToken middleware invocado");
 
+    // Convertir todas las claves del encabezado a minúsculas para garantizar la captura
     const token = req.headers["authorization"] || req.headers["Authorization"];
     console.log("Token recibido en el middleware:", token);
 
