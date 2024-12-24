@@ -6,10 +6,9 @@ const verifyToken = (req, res, next) => {
 
     // Convertir todas las claves del encabezado a minúsculas para garantizar la captura
     const token = req.headers["authorization"] || req.headers["Authorization"];
-    console.log("Token recibido en el middleware:", token);
 
     if (!token) {
-        console.log("Middleware verifyToken invocado para:", req.method, req.originalUrl);
+        console.log("Middleware verifyToken invocado para:", req.method, req.originalUrl, token);
         return res
             .status(403)
             .json({ error: "Acceso denegado. No se proporcionó un token." });
