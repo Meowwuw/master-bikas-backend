@@ -23,6 +23,10 @@ router.post("/login", async (req, res) => {
       `https://www.google.com/recaptcha/api/siteverify?secret=${process.env.RECAPTCHA_SECRET_KEY}&response=${recaptchaToken}`
     );
 
+    console.log("Respuesta de reCAPTCHA:", recaptchaResponse.data);
+    console.log("Error de reCAPTCHA:", recaptchaResponse.data['error-codes']);
+
+
     if (!recaptchaResponse.data.success) {
       return res
         .status(400)
