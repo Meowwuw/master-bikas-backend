@@ -46,7 +46,14 @@ app.use('/api/protected', questionRoutes);
 app.use('/api/protected', courseRoutes);
 app.use('/api/protected', awardsRoutes);
 
-
+// Rutas públicas
+app.use('/api', contactRoutes);
+app.use('/api', registerRoutes);
+app.use('/api', loginRoutes);
+app.use('/api', verifyRoutes);
+app.use('/api', testimonialsRoutes);
+app.use('/api', videoRoutes);
+app.use('/api', addressRoutes);
 
 // Ruta raíz
 app.get('/', (req, res) => {
