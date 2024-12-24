@@ -1,12 +1,11 @@
 import express from 'express';
 import pool from '../db.js';
-import verifyToken from '../middleware/verifyToken.js';
 
 const router = express.Router();
 
-// Ruta para obtener la lista de premios
-router.get("/prizes", verifyToken, async (req, res) => {
-  console.log("Solicitud recibida en /prizes con token:", req.headers.authorization);
+// Ruta para obtener la lista de premios (sin autenticación)
+router.get("/prizes", async (req, res) => {
+  console.log("Solicitud recibida en /prizes");
   try {
     const [results] = await pool.query(`
       SELECT 
@@ -30,7 +29,4 @@ router.get("/prizes", verifyToken, async (req, res) => {
   }
 });
 
-
-
 export default router;
-
