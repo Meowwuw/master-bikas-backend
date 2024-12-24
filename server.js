@@ -30,6 +30,12 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
+app.use((req, res, next) => {
+  console.log(`Petición a: ${req.method} ${req.path}`);
+  next();
+});
+
+
 // Rutas
 app.use('/api', paymentRoutes);
 app.use('/api', contactRoutes);
@@ -57,11 +63,6 @@ app.get('/', (req, res) => {
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Servidor ejecutándose en el puerto ${PORT}`);
-});
-
-app.use((req, res, next) => {
-  console.log(`Petición recibida: ${req.method} ${req.path}`);
-  next();
 });
 
 
