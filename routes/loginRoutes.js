@@ -62,6 +62,7 @@ router.post("/login", async (req, res) => {
     const token = jwt.sign(
       { id: user.ID_USER, email: user.EMAIL }, 
       process.env.JWT_SECRET,
+
       { expiresIn: '1h' }
   );
   
@@ -71,6 +72,10 @@ router.post("/login", async (req, res) => {
       token,
       username: user.NAMES, 
     });
+    console.log("RECAPTCHA_SECRET_KEY:", process.env.RECAPTCHA_SECRET_KEY);
+    console.log("JWT_SECRET:", process.env.JWT_SECRET);
+
+
   } catch (error) {
     console.error("Error al iniciar sesión:", error);
     res.status(500).json({ error: "Error al iniciar sesión" });

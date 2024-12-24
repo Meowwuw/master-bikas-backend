@@ -144,7 +144,6 @@ router.delete('/payments/:id', async (req, res) => {
   const { id } = req.params;
 
   try {
-    // Attempt to delete the payment
     const [result] = await pool.query('DELETE FROM PAYMENTS WHERE PAYMENT_ID = ?', [id]);
 
     if (result.affectedRows === 0) {
