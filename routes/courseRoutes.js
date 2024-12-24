@@ -155,36 +155,6 @@ router.get('/answers/:questionId', async (req, res) => {
 });
 
 
-// Manejar intentos de desbloqueo
-router.post("/users/attempts/use", verifyToken, async (req, res) => {
-  const userId = req.user.ID_USER;
-
-  try {
-    const [user] = await pool.query(
-      "SELECT ATTEMPTS FROM USERS WHERE ID_USER = ?",
-      [userId]
-    );
-
-    if (user.length === 0) {
-      return res.status(404).json({ message: "Usuario no encontrado." });
-    }
-
-    if (user[0].ATTEMPTS <= 0) {
-      return res.status(403).json({ message: "No tienes intentos restantes." });
-    }
-
-    // Reducir intentos en 1
-    await pool.query("UPDATE USERS SET ATTEMPTS = ATTEMPTS - 1 WHERE ID_USER = ?", [userId]);
-
-    const remainingAttempts = user[0].ATTEMPTS - 1;
-
-    res.status(200).json({ message: "Intento utilizado.", remaining_attempts: remainingAttempts });
-  } catch (error) {
-    console.error("Error al utilizar intentos:", error);
-    res.status(500).json({ message: "Error interno del servidor." });
-  }
-});
-
 
 // Backend: courses/create-with-image
 router.post("/courses/create-with-image", upload.single("image"), async (req, res) => {
