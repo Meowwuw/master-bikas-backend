@@ -1,7 +1,7 @@
 import express from 'express';
 import bodyParser from 'body-parser';
 import dotenv from 'dotenv';
-import cors from 'cors'; 
+import cors from 'cors';
 import paymentRoutes from './routes/paymentRoutes.js';
 import registerRoutes from './routes/registerRoutes.js';
 import loginRoutes from './routes/loginRoutes.js';
@@ -19,19 +19,22 @@ import addressRoutes from "./routes/addressRoutes.js";
 import contactRoutes from "./routes/contactRoutes.js";
 import awardsRoutes from "./routes/awardsRoutes.js";
 
-
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middleware
-app.use(cors());
+app.use(cors({
+    origin: ['http://localhost:3000', 'https://master-bikas.com'], // URLs permitidas
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    exposedHeaders: ['Authorization'],
+    credentials: true,
+}));
+
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-app.use(cors({
-  exposedHeaders: ['Authorization'],
-}));
 
 // Rutas
 app.use('/api/protected', authRoutes);
@@ -52,16 +55,11 @@ app.use('/api', courseRoutes);
 app.use('/api', awardsRoutes);
 
 
-
 // Ruta raíz
 app.get('/', (req, res) => {
-  res.send('Servidor corriendo');
+    res.send('Servidor corriendo');
 });
-
-
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Servidor ejecutándose en el puerto ${PORT}`);
+    console.log(`Servidor ejecutándose en el puerto ${PORT}`);
 });
-
-
