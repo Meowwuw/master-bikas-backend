@@ -6,6 +6,7 @@ const router = express.Router();
 
 // Obtener los puntos del usuario
 router.get('/points', verifyToken, async (req, res) => {
+  console.log("Usuario autenticado:", req.user); 
   try {
     const [rows] = await pool.query('SELECT POINTS FROM USERS WHERE ID_USER = ?', [req.user.ID_USER]);
 
