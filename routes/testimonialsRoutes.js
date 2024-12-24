@@ -26,6 +26,8 @@ router.get('/testimonials', async (req, res) => {
 });
 
 
+
+
 // Crear un nuevo testimonio
 router.post('/testimonials', async (req, res) => {
   const { id_user, content, rating } = req.body;
