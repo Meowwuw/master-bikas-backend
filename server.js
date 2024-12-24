@@ -37,22 +37,23 @@ app.use((req, res, next) => {
 
 
 // Rutas
-//app.use('/api', paymentRoutes);
+// Rutas protegidas
+app.use('/api/protected', authRoutes);
+app.use('/api/protected', userRoutes);
+app.use('/api/protected', commentRoutes);
+app.use('/api/protected', profileRoutes);
+app.use('/api/protected', questionRoutes);
+app.use('/api/protected', courseRoutes);
+app.use('/api/protected', awardsRoutes);
+
+// Rutas públicas
 app.use('/api', contactRoutes);
-app.use('/api', registerRoutes); 
-app.use('/api', loginRoutes); 
-app.use('/api', verifyRoutes); 
-//app.use('/api', authRoutes);  
-//app.use('/api', userRoutes);
-app.use('/api', recoverPasswordRoutes);
-//app.use('/api', commentRoutes);
-//app.use('/api', profileRoutes); 
-//app.use('/api', questionRoutes); 
-//app.use('/api', courseRoutes);
+app.use('/api', registerRoutes);
+app.use('/api', loginRoutes);
+app.use('/api', verifyRoutes);
 app.use('/api', testimonialsRoutes);
-app.use("/api", videoRoutes);
-app.use("/api", addressRoutes);
-//app.use("/api", awardsRoutes);
+app.use('/api', videoRoutes);
+app.use('/api', addressRoutes);
 
 // Ruta raíz
 app.get('/', (req, res) => {
