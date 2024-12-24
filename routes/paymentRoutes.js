@@ -17,18 +17,27 @@ router.post('/payments-confirm', verifyToken, async (req, res) => {
   }
 
   try {
-    // Cambiar ID por QUESTION_ID
+    // Obtener el monto de la pregunta
     const [question] = await pool.query('SELECT AMOUNT FROM QUESTION WHERE QUESTION_ID = ?', [question_id]);
-
     if (question.length === 0) {
       return res.status(404).json({ message: 'Pregunta no encontrada.' });
     }
-
     const amount = question[0].AMOUNT;
+
+    // Obtener el perfil del usuario
+    const [profile] = await pool.query(
+      `SELECT TELEPHONE, EMAIL FROM USERS WHERE ID_USER = ?`,
+      [req.user.ID_USER]
+    );
+    if (profile.length === 0) {
+      return res.status(404).json({ message: 'Usuario no encontrado.' });
+    }
+    const userProfile = profile[0];
+    const userPhone = userProfile.TELEPHONE;
+    const userEmail = userProfile.EMAIL;
 
     // Insertar el pago en la base de datos
     const peruTime = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Lima' }));
-
     const [result] = await pool.query(
       `INSERT INTO PAYMENTS (ID_USER, AMOUNT, PAYMENT_METHOD, CURRENCY, STATUS, DESCRIPTION_PAYMENT, QUESTION_ID, DATESTAMP) 
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -43,7 +52,6 @@ router.post('/payments-confirm', verifyToken, async (req, res) => {
         peruTime, 
       ]
     );
-    
 
     console.log("Pago registrado en la base de datos:", result);
 
@@ -56,11 +64,21 @@ router.post('/payments-confirm', verifyToken, async (req, res) => {
       },
     });
 
+    // Generar mensaje para el administrador
+    let message = `El usuario con el correo ${userEmail} ha realizado un pago de ${amount} y está en espera de confirmación.`;
+
+    if (userPhone) {
+      const whatsappLink = `https://wa.me/${userPhone}?text=${encodeURIComponent(
+        `Hola, estamos procesando tu pago de S/ ${amount}. Por favor, espera nuestra confirmación.`
+      )}`;
+      message += `\n\nPara contactarlo por WhatsApp, use el siguiente enlace: ${whatsappLink}`;
+    }
+
     const mailOptions = {
       from: process.env.EMAIL_USER,
-      to: process.env.ADMIN_EMAIL, // El correo del administrador
+      to: process.env.ADMIN_EMAIL, 
       subject: 'Nuevo pago pendiente de aprobación',
-      text: `El usuario con el correo ${req.user.email} ha realizado un pago de ${amount} y está en espera de confirmación.`,
+      text: message,
     };
 
     await transporter.sendMail(mailOptions);

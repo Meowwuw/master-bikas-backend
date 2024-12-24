@@ -17,6 +17,7 @@ import videoRoutes from './routes/videoRoutes.js';
 import questionRoutes from './routes/questionRoutes.js';
 import addressRoutes from "./routes/addressRoutes.js";
 import contactRoutes from "./routes/contactRoutes.js";
+import awardsRoutes from "./routes/awardsRoutes.js";
 
 
 dotenv.config();
@@ -31,21 +32,21 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 // Rutas
 app.use('/api', paymentRoutes);
-console.log("Rutas montadas para /api/payments")
-app.use("/api", contactRoutes);
-app.use('/api/users', registerRoutes); 
-app.use('/api/users', loginRoutes); 
-app.use('/api/users', verifyRoutes); 
-app.use('/api/auth', authRoutes);  
-app.use('/api/users', userRoutes);
-app.use('/api/users', recoverPasswordRoutes);
-app.use('/api/users', commentRoutes);
+app.use('/api', contactRoutes);
+app.use('/api', registerRoutes); 
+app.use('/api', loginRoutes); 
+app.use('/api', verifyRoutes); 
+app.use('/api', authRoutes);  
+app.use('/api', userRoutes);
+app.use('/api', recoverPasswordRoutes);
+app.use('/api', commentRoutes);
 app.use('/api', profileRoutes); 
 app.use('/api', questionRoutes); 
 app.use('/api', courseRoutes);
 app.use('/api', testimonialsRoutes);
 app.use("/api", videoRoutes);
 app.use("/api", addressRoutes);
+app.use("/api", awardsRoutes);
 
 // Ruta raíz
 app.get('/', (req, res) => {

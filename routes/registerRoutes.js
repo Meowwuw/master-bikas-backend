@@ -12,7 +12,7 @@ router.post("/register", async (req, res) => {
     lastName,
     gender,
     email,
-    countryCode = "+51", // Valor por defecto
+    countryCode = "+51",
     telephone,
     birthdate,
     password,
