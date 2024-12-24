@@ -71,3 +71,9 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`Servidor ejecutándose en el puerto ${PORT}`);
 });
 
+app.use((req, res, next) => {
+  console.log(`Petición recibida: ${req.method} ${req.path}`);
+  next();
+});
+
+
