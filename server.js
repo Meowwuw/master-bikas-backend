@@ -22,7 +22,16 @@ dotenv.config();
 const app = express();
 
 // Middlewares
-app.use(cors());
+const cors = require("cors");
+
+app.use(
+  cors({
+    origin: "https://www.masterbikas.com", 
+    methods: "GET,POST,PUT,DELETE",
+    credentials: true,
+  })
+);
+
 app.use(express.json());
 
 app.get("/", (req, res) => {
