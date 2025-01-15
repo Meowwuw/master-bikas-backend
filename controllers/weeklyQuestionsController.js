@@ -1,3 +1,4 @@
+import { Upload } from "@aws-sdk/lib-storage";
 import { v4 as uuidv4 } from "uuid";
 import pool from "../config/db.js";
 import { s3 } from "../config/awsConfig.js";
@@ -77,7 +78,12 @@ export const uploadWeeklyAnswer = async (req, res) => {
       ContentType: req.file.mimetype,
     };
 
-    const uploadResult = await s3.upload(params).promise();
+    const upload = new Upload({
+      client: s3,
+      params,
+    });
+
+    const uploadResult = await upload.done();
     const fileUrl = uploadResult.Location;
 
     const [result] = await pool.query(
@@ -108,7 +114,12 @@ export const uploadWeeklyQuestionImage = async (req, res) => {
   };
 
   try {
-    const uploadResult = await s3.upload(params).promise();
+    const upload = new Upload({
+      client: s3,
+      params,
+    });
+
+    const uploadResult = await upload.done();
     const fileUrl = uploadResult.Location;
 
     res.status(200).json({

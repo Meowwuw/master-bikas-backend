@@ -6,6 +6,7 @@ import {
   deletePayment,
   checkPaymentStatus,
   checkPaymentStatusByQuestion,
+  getPaidAnswers
 } from "../controllers/paymentsController.js";
 import { verifyToken } from "../middleware/authMiddleware.js";
 
@@ -28,5 +29,8 @@ router.get("/check-payment-status", verifyToken, checkPaymentStatus);
 
 // Verificar estado del pago por pregunta
 router.get("/check-payment-status/:questionId", verifyToken, checkPaymentStatusByQuestion);
+
+// Obtener respuestas pagadas
+router.get("/paid-answers", verifyToken, getPaidAnswers);
 
 export default router;

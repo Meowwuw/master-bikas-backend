@@ -1,6 +1,7 @@
+import { Upload } from "@aws-sdk/lib-storage";
 import { v4 as uuidv4 } from "uuid";
-import { s3 } from "../config/awsConfig.js";
 import pool from "../config/db.js";
+import { s3 } from "../config/awsConfig.js"; // Importar el cliente configurado
 
 export const uploadCustomQuestionImage = async (req, res) => {
   const userId = req.user.id;
@@ -17,10 +18,16 @@ export const uploadCustomQuestionImage = async (req, res) => {
   };
 
   try {
-    // Subir archivo a S3
-    const uploadResult = await s3.upload(params).promise();
+    // Usar el método Upload para subir el archivo
+    const upload = new Upload({
+      client: s3,
+      params,
+    });
+
+    const uploadResult = await upload.done();
     const fileUrl = uploadResult.Location;
 
+    // Actualizar la base de datos con la URL del archivo
     const query = `
       UPDATE CUSTOM_QUESTION
       SET CUSTOM_QUESTION_URL = ?

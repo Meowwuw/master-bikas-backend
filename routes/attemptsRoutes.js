@@ -1,5 +1,5 @@
 import express from "express";
-import { getRemainingAttempts, useAttempt, getUserEmail } from "../controllers/attemptsController.js";
+import { getRemainingAttempts, useAttempt, getUserEmail, useAttemptToUnlock } from "../controllers/attemptsController.js";
 import { verifyToken } from "../middleware/authMiddleware.js";
 
 
@@ -13,5 +13,8 @@ router.post("/attempts/use", verifyToken, useAttempt);
 
 // Obtener correo del usuario por ID
 router.get("/users/:userId/email", getUserEmail);
+
+// Usar un intento para desbloquear una pregunta
+router.post("/attempts/unlock/:questionId", verifyToken, useAttemptToUnlock);
 
 export default router;

@@ -79,7 +79,7 @@ export const getQuestionById = async (req, res) => {
 
   try {
     const [question] = await pool.query(`
-      SELECT QUESTION_ID as id, QUESTION_TEXT as text, QUESTION_IMAGE as image, POINTS as points, VIEWS as views, AMOUNT as amount, CREATED_AT as createdAt 
+      SELECT QUESTION_ID as id, QUESTION_TEXT as text, QUESTION_IMAGE as image, POINTS as points, AMOUNT as amount, CREATED_AT as createdAt 
       FROM QUESTION
       WHERE QUESTION_ID = ?
     `, [questionId]);

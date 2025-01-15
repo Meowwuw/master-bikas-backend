@@ -41,7 +41,9 @@ export const registerUser = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Generar el apodo
-    const nickname = `${names.charAt(0).toUpperCase()}${lastName.split(" ")[0]}`;
+    const nickname = `${names.charAt(0).toUpperCase()}${
+      lastName.split(" ")[0]
+    }`;
 
     console.log("Datos a insertar:", {
       names,
@@ -87,7 +89,7 @@ export const registerUser = async (req, res) => {
     );
 
     // Crear el enlace de verificación
-    const verificationLink = `http://localhost:3000/verify-email?token=${verificationToken}`;
+    const verificationLink = `${process.env.FRONTEND_URL}/verify-email?token=${verificationToken}`;
 
     // Configurar el transporte de nodemailer
     const transporter = nodemailer.createTransport({
@@ -176,7 +178,7 @@ export const registerUser = async (req, res) => {
             </table>
           </body>
         </html>
-      `
+      `,
     };
 
     // Enviar el correo
@@ -214,13 +216,15 @@ export const verifyEmail = async (req, res) => {
     res.status(200).json({ message: "Correo verificado exitosamente." });
   } catch (error) {
     console.error("Error al verificar el correo:", error);
-    res.status(400).json({ error: "Enlace de verificación inválido o expirado." });
+    res
+      .status(400)
+      .json({ error: "Enlace de verificación inválido o expirado." });
   }
 };
 
 // Controlador para obtener el perfil del usuario
 export const getUserProfile = async (req, res) => {
-  const userId = req.user.id; 
+  const userId = req.user.id;
 
   try {
     const [profile] = await pool.query(

@@ -6,16 +6,16 @@ import { uploadPaymentProof } from "../controllers/paymentProofController.js";
 const router = express.Router();
 
 const upload = multer({
-  storage: multer.memoryStorage(),
+  storage: multer.memoryStorage(), 
   limits: { fileSize: 5 * 1024 * 1024 }, 
 });
 
 // Ruta para subir el comprobante de pago
 router.post(
   "/upload-payment-proof",
-  verifyToken,
-  upload.single("file"),
-  uploadPaymentProof
+  verifyToken, 
+  upload.single("file"), 
+  uploadPaymentProof 
 );
 
 export default router;

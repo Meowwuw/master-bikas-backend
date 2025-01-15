@@ -22,11 +22,9 @@ dotenv.config();
 const app = express();
 
 // Middlewares
-const cors = require("cors");
-
 app.use(
   cors({
-    origin: "https://www.masterbikas.com", 
+    origin: ["https://master-bikas.com", "https://www.master-bikas.com"], 
     methods: "GET,POST,PUT,DELETE",
     credentials: true,
   })
