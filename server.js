@@ -24,7 +24,7 @@ const app = express();
 // Middlewares
 app.use(
   cors({
-    origin: ["https://master-bikas.com", "https://www.master-bikas.com"], 
+    origin: ["https://master-bikas.com", "https://www.master-bikas.com", "http://localhost:3000"], 
     methods: "GET,POST,PUT,DELETE",
     credentials: true,
   })
