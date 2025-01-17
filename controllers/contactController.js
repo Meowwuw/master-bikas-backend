@@ -1,5 +1,4 @@
 import pool from "../config/db.js";
-import { formatInTimeZone } from "date-fns-tz";
 
 export const createContactRequest = async (req, res) => {
   const { firstName, lastName, email, phoneNumber } = req.body;
@@ -9,18 +8,15 @@ export const createContactRequest = async (req, res) => {
   }
 
   try {
-    const currentDateTime = formatInTimeZone(new Date(), "America/Lima", "yyyy-MM-dd HH:mm:ss");
-
     const query = `
       INSERT INTO CONTACT_REQUESTS (FIRST_NAME, LAST_NAME, EMAIL, PHONE_NUMBER, STATUS, CREATED_AT)
-      VALUES (?, ?, ?, ?, 'PENDIENTE', ?)
+      VALUES (?, ?, ?, ?, 'PENDIENTE', CONVERT_TZ(NOW(), '+00:00', '-05:00'))
     `;
     const [result] = await pool.query(query, [
       firstName,
       lastName,
       email,
       phoneNumber || null,
-      currentDateTime, 
     ]);
 
     res.status(201).json({
