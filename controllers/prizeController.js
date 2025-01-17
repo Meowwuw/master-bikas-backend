@@ -24,7 +24,6 @@ export const getAvailablePrizes = async (req, res) => {
   }
 };
 
-// Reclamar un premio
 export const claimPrize = async (req, res) => {
   const { prizeId } = req.body;
   const userId = req.user.id;
@@ -33,12 +32,11 @@ export const claimPrize = async (req, res) => {
     return res.status(400).json({ message: "ID del premio es requerido." });
   }
 
-  const connection = await pool.getConnection(); // Crear una conexión para manejar transacciones
+  const connection = await pool.getConnection(); 
 
   try {
-    await connection.beginTransaction(); // Iniciar una transacción
+    await connection.beginTransaction(); 
 
-    // Obtener puntos del usuario
     const [userResult] = await connection.query(
       "SELECT POINTS FROM USERS WHERE ID_USER = ? FOR UPDATE",
       [userId]
@@ -51,7 +49,6 @@ export const claimPrize = async (req, res) => {
 
     const userPoints = userResult[0].POINTS;
 
-    // Obtener detalles del premio
     const [prizeResult] = await connection.query(
       "SELECT POINTS_REQUIRED, STOCK FROM PRIZE WHERE PRIZE_ID = ? FOR UPDATE",
       [prizeId]
@@ -78,7 +75,6 @@ export const claimPrize = async (req, res) => {
         });
     }
 
-    // Actualizar puntos del usuario y reducir el stock del premio
     await connection.query(
       "UPDATE USERS SET POINTS = POINTS - ? WHERE ID_USER = ?",
       [pointsRequired, userId]
@@ -88,14 +84,14 @@ export const claimPrize = async (req, res) => {
       [prizeId]
     );
 
-    await connection.commit(); // Confirmar transacción
+    await connection.commit(); 
 
     res.status(200).json({ success: true, message: "Premio reclamado exitosamente.", updatedStock: stock - 1 });
   } catch (error) {
-    await connection.rollback(); // Revertir transacción en caso de error
+    await connection.rollback(); 
     console.error("Error al reclamar premio:", error);
     res.status(500).json({ error: "Error al reclamar el premio." });
   } finally {
-    connection.release(); // Liberar la conexión
+    connection.release();
   }
 };

@@ -70,6 +70,31 @@ export const createCustomQuestion = async (req, res) => {
       new Date().toLocaleString("en-US", { timeZone: "America/Lima" })
     );
 
+    // Si es WhatsApp, solo registrar los datos sin generar un ticket
+    if (WHATSAPP_OPTION) {
+      const query = `
+        INSERT INTO CUSTOM_QUESTION 
+        (ID_USER, COURSE_ID, USER_COURSE, COURSE_NAME, SCHOOL_CATEGORY, SCHOOL_NAME, CUSTOM_QUESTION_URL, WHATSAPP_OPTION, CREATED_AT) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+
+      await pool.query(query, [
+        userId,
+        COURSE_ID || null,
+        USER_COURSE || null,
+        courseName || USER_COURSE || null,
+        SCHOOL_CATEGORY,
+        SCHOOL_NAME || null,
+        CUSTOM_QUESTION_URL || null,
+        WHATSAPP_OPTION,
+        peruTime,
+      ]);
+
+      return res.status(201).json({
+        message: "Datos registrados correctamente para WhatsApp.",
+      });
+    }
+
+    // Si no es WhatsApp, generar el ticket y registrar todo
     const today = peruTime.toISOString().split("T")[0];
 
     const [ticketCount] = await pool.query(
@@ -78,13 +103,14 @@ export const createCustomQuestion = async (req, res) => {
     );
 
     const dailyTicketNumber = ticketCount[0].count + 1;
+    const ticketId = `${today.replace(/-/g, "")}-${dailyTicketNumber}`;
 
     const query = `
       INSERT INTO CUSTOM_QUESTION 
       (ID_USER, COURSE_ID, USER_COURSE, COURSE_NAME, SCHOOL_CATEGORY, SCHOOL_NAME, AMOUNT, CUSTOM_QUESTION_URL, CUSTOM_PAYMENT_URL, WHATSAPP_OPTION, CREATED_AT) 
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
-    const [result] = await pool.query(query, [
+    await pool.query(query, [
       userId,
       COURSE_ID || null,
       USER_COURSE || null,
@@ -98,9 +124,7 @@ export const createCustomQuestion = async (req, res) => {
       peruTime,
     ]);
 
-    const ticketId = `${today.replace(/-/g, "")}-${dailyTicketNumber}`;
-
-    res.status(201).json({
+    return res.status(201).json({
       message: "Pregunta creada exitosamente",
       ticketId,
     });
@@ -128,7 +152,9 @@ export const getCustomQuestions = async (req, res) => {
     `);
 
     if (rows.length === 0) {
-      return res.status(404).json({ message: "No se encontraron preguntas personalizadas." });
+      return res
+        .status(404)
+        .json({ message: "No se encontraron preguntas personalizadas." });
     }
 
     res.status(200).json(rows);
@@ -137,6 +163,3 @@ export const getCustomQuestions = async (req, res) => {
     res.status(500).json({ message: "Error interno del servidor." });
   }
 };
-
-
-
