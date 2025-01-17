@@ -27,38 +27,50 @@ export const getAvailablePrizes = async (req, res) => {
 // Reclamar un premio
 export const claimPrize = async (req, res) => {
   const { prizeId } = req.body;
-  const userId = req.user.id; 
+  const userId = req.user.id;
+
+  if (!prizeId) {
+    return res.status(400).json({ message: "ID del premio es requerido." });
+  }
+
+  const connection = await pool.getConnection(); // Crear una conexión para manejar transacciones
 
   try {
+    await connection.beginTransaction(); // Iniciar una transacción
+
     // Obtener puntos del usuario
-    const [userResult] = await pool.query(
-      "SELECT POINTS FROM USERS WHERE ID_USER = ?",
+    const [userResult] = await connection.query(
+      "SELECT POINTS FROM USERS WHERE ID_USER = ? FOR UPDATE",
       [userId]
     );
 
     if (userResult.length === 0) {
+      await connection.rollback();
       return res.status(404).json({ message: "Usuario no encontrado." });
     }
 
     const userPoints = userResult[0].POINTS;
 
     // Obtener detalles del premio
-    const [prizeResult] = await pool.query(
-      "SELECT POINTS_REQUIRED, STOCK FROM PRIZE WHERE PRIZE_ID = ?",
+    const [prizeResult] = await connection.query(
+      "SELECT POINTS_REQUIRED, STOCK FROM PRIZE WHERE PRIZE_ID = ? FOR UPDATE",
       [prizeId]
     );
 
     if (prizeResult.length === 0) {
+      await connection.rollback();
       return res.status(404).json({ message: "Premio no encontrado." });
     }
 
     const { POINTS_REQUIRED: pointsRequired, STOCK: stock } = prizeResult[0];
 
     if (stock <= 0) {
+      await connection.rollback();
       return res.status(400).json({ message: "El premio no está disponible." });
     }
 
     if (userPoints < pointsRequired) {
+      await connection.rollback();
       return res
         .status(400)
         .json({
@@ -67,17 +79,23 @@ export const claimPrize = async (req, res) => {
     }
 
     // Actualizar puntos del usuario y reducir el stock del premio
-    await pool.query("UPDATE USERS SET POINTS = POINTS - ? WHERE ID_USER = ?", [
-      pointsRequired,
-      userId,
-    ]);
-    await pool.query("UPDATE PRIZE SET STOCK = STOCK - 1 WHERE PRIZE_ID = ?", [
-      prizeId,
-    ]);
+    await connection.query(
+      "UPDATE USERS SET POINTS = POINTS - ? WHERE ID_USER = ?",
+      [pointsRequired, userId]
+    );
+    await connection.query(
+      "UPDATE PRIZE SET STOCK = STOCK - 1 WHERE PRIZE_ID = ?",
+      [prizeId]
+    );
 
-    res.status(200).json({ message: "Premio reclamado exitosamente." });
+    await connection.commit(); // Confirmar transacción
+
+    res.status(200).json({ success: true, message: "Premio reclamado exitosamente.", updatedStock: stock - 1 });
   } catch (error) {
+    await connection.rollback(); // Revertir transacción en caso de error
     console.error("Error al reclamar premio:", error);
     res.status(500).json({ error: "Error al reclamar el premio." });
+  } finally {
+    connection.release(); // Liberar la conexión
   }
 };
