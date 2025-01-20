@@ -86,9 +86,13 @@ export const uploadWeeklyAnswer = async (req, res) => {
     const uploadResult = await upload.done();
     const fileUrl = uploadResult.Location;
 
+    const peruTime = new Date(
+      new Date().toLocaleString("en-US", { timeZone: "America/Lima" })
+    );
+
     const [result] = await pool.query(
-      `INSERT INTO WEEKLY_ANSWERS (QUESTION_W_ID, ID_USER, RESPONSE_URL) VALUES (?, ?, ?)`,
-      [QUESTION_W_ID, req.user.id, fileUrl]
+      `INSERT INTO WEEKLY_ANSWERS (QUESTION_W_ID, ID_USER, RESPONSE_URL, CREATED_AT) VALUES (?, ?, ?, ?)`,
+      [QUESTION_W_ID, req.user.id, fileUrl, peruTime]
     );
 
     res.status(201).json({
@@ -100,6 +104,7 @@ export const uploadWeeklyAnswer = async (req, res) => {
     res.status(500).json({ message: "Error al subir la respuesta semanal." });
   }
 };
+
 
 export const uploadWeeklyQuestionImage = async (req, res) => {
   if (!req.file) {
