@@ -14,15 +14,15 @@ export const getAvailablePrizes = async (req, res) => {
             STOCK as stock,
             IMAGE_URL as imageUrl
           FROM PRIZE
-          WHERE STOCK > 0 
           ORDER BY CREATED_AT DESC
-        `);
+        `); // Se eliminó el WHERE STOCK > 0
     res.status(200).json({ prizes: results });
   } catch (error) {
     console.error("Error al obtener los premios:", error);
     res.status(500).json({ error: "Error al obtener los premios." });
   }
 };
+
 
 export const claimPrize = async (req, res) => {
   const { prizeId } = req.body;
