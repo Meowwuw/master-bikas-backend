@@ -38,10 +38,10 @@ export const createCustomQuestion = async (req, res) => {
   const amount =
     SCHOOL_CATEGORY.toLowerCase() === "colegio" ||
     SCHOOL_CATEGORY.toLowerCase() === "academia"
-      ? 1
+      ? 3
       : SCHOOL_CATEGORY.toLowerCase() === "instituto" ||
         SCHOOL_CATEGORY.toLowerCase() === "universidad"
-      ? 3
+      ? 5
       : null;
 
   if (amount === null) {
