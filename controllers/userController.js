@@ -57,11 +57,16 @@ export const registerUser = async (req, res) => {
       hashedPassword,
     });
 
+    // Obtener la hora de Perú
+    const peruTime = new Date(
+      new Date().toLocaleString("en-US", { timeZone: "America/Lima" })
+    );
+
     // Insertar el nuevo usuario en la base de datos
     const [result] = await pool.query(
       `INSERT INTO USERS 
       (NAMES, LAST_NAME, NICKNAME, GENDER, EMAIL, COUNTRY_CODE, TELEPHONE, BIRTHDATE, PASSWORD, POINTS, STATUS, REMAINING_ATTEMPTS, VERIFIED, CREATED_AT, UPDATED_AT) 
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         names,
         lastName,
@@ -76,6 +81,8 @@ export const registerUser = async (req, res) => {
         1, // Estado activo
         2, // Intentos restantes
         0, // Cuenta no verificada
+        peruTime, // Hora de creación
+        peruTime, // Hora de actualización
       ]
     );
 
