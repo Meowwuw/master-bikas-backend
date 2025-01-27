@@ -45,6 +45,14 @@ export const registerUser = async (req, res) => {
       lastName.split(" ")[0]
     }`;
 
+    const peruTime = new Date();
+    peruTime.setHours(peruTime.getHours() - 5);
+
+    const formattedPeruTime = peruTime
+      .toISOString()
+      .slice(0, 19)
+      .replace("T", " ");
+
     console.log("Datos a insertar:", {
       names,
       lastName,
@@ -55,17 +63,14 @@ export const registerUser = async (req, res) => {
       telephone,
       birthdate,
       hashedPassword,
+      currentTime: formattedPeruTime,
     });
-
-    // Obtener la hora de Perú
-    const peruTime = new Date(
-      new Date().toLocaleString("en-US", { timeZone: "America/Lima" })
-    );
 
     // Insertar el nuevo usuario en la base de datos
     const [result] = await pool.query(
       `INSERT INTO USERS 
-      (NAMES, LAST_NAME, NICKNAME, GENDER, EMAIL, COUNTRY_CODE, TELEPHONE, BIRTHDATE, PASSWORD, POINTS, STATUS, REMAINING_ATTEMPTS, VERIFIED, CREATED_AT, UPDATED_AT) 
+      (NAMES, LAST_NAME, NICKNAME, GENDER, EMAIL, COUNTRY_CODE, TELEPHONE, BIRTHDATE, PASSWORD, POINTS, STATUS, 
+      REMAINING_ATTEMPTS, VERIFIED, CREATED_AT, UPDATED_AT) 
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         names,
@@ -81,8 +86,8 @@ export const registerUser = async (req, res) => {
         1, // Estado activo
         2, // Intentos restantes
         0, // Cuenta no verificada
-        peruTime, // Hora de creación
-        peruTime, // Hora de actualización
+        formattedPeruTime, // Hora de creación
+        formattedPeruTime, // Hora de actualización
       ]
     );
 
