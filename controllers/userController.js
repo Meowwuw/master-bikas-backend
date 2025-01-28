@@ -45,25 +45,26 @@ export const registerUser = async (req, res) => {
       lastName.split(" ")[0]
     }`;
 
-    // Obtener la fecha actual en la zona horaria de Perú
-    const now = new Date();
-    const peruDate = new Date(
-      now.toLocaleString("en-US", { timeZone: "America/Lima" })
-    );
-    const formattedPeruTime =
-      peruDate.getFullYear() +
-      "-" +
-      String(peruDate.getMonth() + 1).padStart(2, "0") +
-      "-" +
-      String(peruDate.getDate()).padStart(2, "0") +
-      " " +
-      String(peruDate.getHours()).padStart(2, "0") +
-      ":" +
-      String(peruDate.getMinutes()).padStart(2, "0") +
-      ":" +
-      String(peruDate.getSeconds()).padStart(2, "0");
+    const peruTime = new Date();
+    peruTime.setHours(peruTime.getHours() - 5);
 
-    console.log("Hora actual de Perú:", formattedPeruTime);
+    const formattedPeruTime = peruTime
+      .toISOString()
+      .slice(0, 19)
+      .replace("T", " ");
+
+    console.log("Datos a insertar:", {
+      names,
+      lastName,
+      nickname,
+      gender,
+      email,
+      countryCode,
+      telephone,
+      birthdate,
+      hashedPassword,
+      currentTime: formattedPeruTime,
+    });
 
     // Insertar el nuevo usuario en la base de datos
     const [result] = await pool.query(
@@ -119,75 +120,75 @@ export const registerUser = async (req, res) => {
       html: `
         <!DOCTYPE html>
         <html>
-        <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Verificación de correo - MASTER BIKAS</title>
-</head>
-<body style="margin: 0; padding: 0; background-color: #f4f4f5; font-family: Arial, sans-serif;">
-<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
-  <tr>
-    <td align="center" style="padding: 40px 0;">
-      <table role="presentation" style="max-width: 600px; width: 100%; background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">
-        
-        <!-- Main Content -->
-        <tr>
-          <td style="padding: 20px 40px;">
-            <h1 style="color: #1a1a1a; font-size: 24px; margin: 0 0 20px; text-align: center;">
-              ¡Bienvenido a MASTER BIKAS!
-            </h1>
-            <p style="color: #4b5563; font-size: 16px; line-height: 24px; margin: 0 0 20px;">
-              Gracias por unirte a nuestra comunidad. Para comenzar a disfrutar de todos los beneficios, por favor verifica tu dirección de correo electrónico.
-            </p>
-            
-            <!-- Button -->
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Verificación de correo - MASTER BIKAS</title>
+          </head>
+          <body style="margin: 0; padding: 0; background-color: #f4f4f5; font-family: Arial, sans-serif;">
             <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
               <tr>
-                <td align="center" style="padding: 30px 0;">
-                  <a href="${verificationLink}" 
-                     target="_blank"
-                     style="background-color: #0cc0df; color: white; padding: 12px 30px; border-radius: 6px; text-decoration: none; font-weight: bold; display: inline-block; font-size: 16px;">
-                    Verificar mi correo
-                  </a>
+                <td align="center" style="padding: 40px 0;">
+                  <table role="presentation" style="max-width: 600px; width: 100%; background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">
+                    
+                    <!-- Main Content -->
+                    <tr>
+                      <td style="padding: 20px 40px;">
+                        <h1 style="color: #1a1a1a; font-size: 24px; margin: 0 0 20px; text-align: center;">
+                          ¡Bienvenido a MASTER BIKAS!
+                        </h1>
+                        <p style="color: #4b5563; font-size: 16px; line-height: 24px; margin: 0 0 20px;">
+                          Gracias por unirte a nuestra comunidad. Para comenzar a disfrutar de todos los beneficios, por favor verifica tu dirección de correo electrónico.
+                        </p>
+                        
+                        <!-- Button -->
+                        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                          <tr>
+                            <td align="center" style="padding: 30px 0;">
+                              <a href="${verificationLink}" 
+                                 target="_blank"
+                                 style="background-color: #0cc0df; color: white; padding: 12px 30px; border-radius: 6px; text-decoration: none; font-weight: bold; display: inline-block; font-size: 16px;">
+                                Verificar mi correo
+                              </a>
+                            </td>
+                          </tr>
+                        </table>
+                        
+                        <p style="color: #6b7280; font-size: 14px; text-align: center; margin: 20px 0 0;">
+                          Este enlace expirará en 1 hora por motivos de seguridad.
+                        </p>
+                      </td>
+                    </tr>
+                    
+                    <!-- Footer -->
+                    <tr>
+                      <td style="background-color: #f9fafb; padding: 20px 40px; border-radius: 0 0 8px 8px;">
+                        <p style="color: #6b7280; font-size: 12px; text-align: center; margin: 0;">
+                          Si no has solicitado esta verificación, puedes ignorar este correo.
+                        </p>
+                        <div style="text-align: center; margin-top: 20px;">
+                          <a href="wa.me/+51921346549" style="color: #0cc0df; text-decoration: none; margin: 0 10px;">Whatsapp</a>
+                          <a href="https://www.facebook.com/profile.php?id=61566966383351" style="color: #0cc0df; text-decoration: none; margin: 0 10px;">Facebook</a>
+                          <a href="https://www.instagram.com/master.bikas/" style="color: #0cc0df; text-decoration: none; margin: 0 10px;">Instagram</a>
+                        </div>
+                      </td>
+                    </tr>
+                  </table>
+                  
+                  <!-- Legal Footer -->
+                  <table role="presentation" style="max-width: 600px; width: 100%;">
+                    <tr>
+                      <td style="padding: 20px 40px;">
+                        <p style="color: #6b7280; font-size: 12px; text-align: center; margin: 0;">
+                          © ${new Date().getFullYear()}Master Bikas. Todos los derechos reservados.
+                        </p>
+                      </td>
+                    </tr>
+                  </table>
                 </td>
               </tr>
             </table>
-            
-            <p style="color: #6b7280; font-size: 14px; text-align: center; margin: 20px 0 0;">
-              Este enlace expirará en 1 hora por motivos de seguridad.
-            </p>
-          </td>
-        </tr>
-        
-        <!-- Footer -->
-        <tr>
-          <td style="background-color: #f9fafb; padding: 20px 40px; border-radius: 0 0 8px 8px;">
-            <p style="color: #6b7280; font-size: 12px; text-align: center; margin: 0;">
-              Si no has solicitado esta verificación, puedes ignorar este correo.
-            </p>
-            <div style="text-align: center; margin-top: 20px;">
-              <a href="wa.me/+51921346549" style="color: #0cc0df; text-decoration: none; margin: 0 10px;">Whatsapp</a>
-              <a href="https://www.facebook.com/profile.php?id=61566966383351" style="color: #0cc0df; text-decoration: none; margin: 0 10px;">Facebook</a>
-              <a href="https://www.instagram.com/master.bikas/" style="color: #0cc0df; text-decoration: none; margin: 0 10px;">Instagram</a>
-            </div>
-          </td>
-        </tr>
-      </table>
-      
-      <!-- Legal Footer -->
-      <table role="presentation" style="max-width: 600px; width: 100%;">
-        <tr>
-          <td style="padding: 20px 40px;">
-            <p style="color: #6b7280; font-size: 12px; text-align: center; margin: 0;">
-              © ${new Date().getFullYear()}Master Bikas. Todos los derechos reservados.
-            </p>
-          </td>
-        </tr>
-      </table>
-    </td>
-  </tr>
-</table>
-</body>
+          </body>
         </html>
       `,
     };
