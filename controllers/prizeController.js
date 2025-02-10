@@ -37,6 +37,7 @@ export const claimPrize = async (req, res) => {
   try {
     await connection.beginTransaction();
 
+    // 🔹 Bloquear la fila del usuario
     const [userResult] = await connection.query(
       "SELECT POINTS FROM USERS WHERE ID_USER = ? FOR UPDATE",
       [userId]
@@ -49,6 +50,7 @@ export const claimPrize = async (req, res) => {
 
     const userPoints = userResult[0].POINTS;
 
+    // 🔹 Bloquear la fila del premio
     const [prizeResult] = await connection.query(
       "SELECT POINTS_REQUIRED, STOCK FROM PRIZE WHERE PRIZE_ID = ? FOR UPDATE",
       [prizeId]
@@ -73,23 +75,28 @@ export const claimPrize = async (req, res) => {
       });
     }
 
+    // 🔹 Restar puntos al usuario
     await connection.query(
       "UPDATE USERS SET POINTS = POINTS - ? WHERE ID_USER = ?",
       [pointsRequired, userId]
     );
 
-
+    // 🔹 Asegurar que el stock nunca sea menor a 0
     await connection.query(
       "UPDATE PRIZE SET STOCK = GREATEST(STOCK - 1, 0) WHERE PRIZE_ID = ?",
       [prizeId]
     );
 
-    
+    // 🔹 Obtener la fecha y hora de Perú en formato MySQL
+    const peruTime = new Date(
+      new Date().toLocaleString("en-US", { timeZone: "America/Lima" })
+    ).toISOString().slice(0, 19).replace("T", " ");
+
     // 🔹 Insertar la redención en la tabla REDEEMED_PRIZES
-await connection.query(
-  "INSERT INTO REDEEMED_PRIZES (ID_USER, PRIZE_ID, REDEEM_DATE, STATUS) VALUES (?, ?, ?, ?)",
-  [userId, prizeId, new Date(new Date().toLocaleString("en-US", { timeZone: "America/Lima" })), 'PENDING']
-);
+    await connection.query(
+      "INSERT INTO REDEEMED_PRIZES (ID_USER, PRIZE_ID, REDEEM_DATE, STATUS) VALUES (?, ?, ?, ?)",
+      [userId, prizeId, peruTime, 'PENDING']
+    );
 
     await connection.commit();
 
