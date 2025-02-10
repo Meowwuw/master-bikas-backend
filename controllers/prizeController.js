@@ -37,7 +37,7 @@ export const claimPrize = async (req, res) => {
   try {
     await connection.beginTransaction();
 
-    // Obtener los puntos del usuario con bloqueo de fila
+    // Bloquear los puntos del usuario antes de la transacción
     const [userResult] = await connection.query(
       "SELECT POINTS FROM USERS WHERE ID_USER = ? FOR UPDATE",
       [userId]
@@ -50,7 +50,7 @@ export const claimPrize = async (req, res) => {
 
     const userPoints = userResult[0].POINTS;
 
-    // Obtener detalles del premio con bloqueo de fila
+    // Bloquear la fila del premio antes de la transacción
     const [prizeResult] = await connection.query(
       "SELECT POINTS_REQUIRED, STOCK FROM PRIZE WHERE PRIZE_ID = ? FOR UPDATE",
       [prizeId]
@@ -63,7 +63,7 @@ export const claimPrize = async (req, res) => {
 
     const { POINTS_REQUIRED: pointsRequired, STOCK: stock } = prizeResult[0];
 
-    if (stock === 0) {
+    if (stock <= 0) {
       await connection.rollback();
       return res.status(400).json({ message: "El premio está agotado." });
     }
@@ -81,13 +81,24 @@ export const claimPrize = async (req, res) => {
       [pointsRequired, userId]
     );
 
-    // Reducir el stock del premio (ya no bajará a negativo)
+    // Reducir el stock del premio (ahora garantizamos que nunca será < 0)
     await connection.query(
-      "UPDATE PRIZE SET STOCK = STOCK - 1 WHERE PRIZE_ID = ?",
+      "UPDATE PRIZE SET STOCK = STOCK - 1 WHERE PRIZE_ID = ? AND STOCK > 0",
       [prizeId]
     );
 
-    // Insertar el reclamo del premio en la tabla REDEEMED_PRIZES
+    // Verificar que se redujo correctamente el stock (en caso de concurrencia)
+    const [updatedPrize] = await connection.query(
+      "SELECT STOCK FROM PRIZE WHERE PRIZE_ID = ?",
+      [prizeId]
+    );
+
+    if (updatedPrize[0].STOCK < 0) {
+      await connection.rollback();
+      return res.status(400).json({ message: "Stock insuficiente." });
+    }
+
+    // Insertar el reclamo del premio en REDEEMED_PRIZES con la hora de Perú
     const peruTime = new Date(
       new Date().toLocaleString("en-US", { timeZone: "America/Lima" })
     );
@@ -102,7 +113,7 @@ export const claimPrize = async (req, res) => {
     res.status(200).json({
       success: true,
       message: "Premio reclamado exitosamente.",
-      updatedStock: stock - 1,
+      updatedStock: updatedPrize[0].STOCK,
     });
   } catch (error) {
     await connection.rollback();
@@ -112,6 +123,7 @@ export const claimPrize = async (req, res) => {
     connection.release();
   }
 };
+
 
 
 
