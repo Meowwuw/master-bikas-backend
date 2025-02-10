@@ -52,21 +52,16 @@ export const claimPrize = async (req, res) => {
 
     // Verificar premio y stock
     const [prizeResult] = await connection.query(
-      "SELECT POINTS_REQUIRED, STOCK FROM PRIZE WHERE PRIZE_ID = ? FOR UPDATE",
+      "SELECT POINTS_REQUIRED, STOCK FROM PRIZE WHERE PRIZE_ID = ? AND STOCK > 0 FOR UPDATE",
       [prizeId]
     );
 
     if (prizeResult.length === 0) {
       await connection.rollback();
-      return res.status(404).json({ message: "Premio no encontrado." });
+      return res.status(404).json({ message: "Premio no encontrado o sin stock disponible." });
     }
 
     const { POINTS_REQUIRED: pointsRequired, STOCK: stock } = prizeResult[0];
-
-    if (stock <= 0) {
-      await connection.rollback();
-      return res.status(400).json({ message: "El premio no está disponible." });
-    }
 
     if (userPoints < pointsRequired) {
       await connection.rollback();
@@ -81,13 +76,12 @@ export const claimPrize = async (req, res) => {
       [pointsRequired, userId]
     );
 
-    // Actualizar stock del premio con condición para evitar valores negativos
+    // Actualizar stock del premio (asegurando que solo se actualice si stock = 1)
     const [updateResult] = await connection.query(
-      "UPDATE PRIZE SET STOCK = GREATEST(STOCK - 1, 0) WHERE PRIZE_ID = ? AND STOCK > 0",
+      "UPDATE PRIZE SET STOCK = 0 WHERE PRIZE_ID = ? AND STOCK = 1",
       [prizeId]
     );
 
-    // Verificar si se actualizó el stock
     if (updateResult.affectedRows === 0) {
       await connection.rollback();
       return res.status(400).json({ message: "El premio ya no está disponible." });
@@ -109,7 +103,7 @@ export const claimPrize = async (req, res) => {
     res.status(200).json({
       success: true,
       message: "Premio reclamado exitosamente.",
-      updatedStock: Math.max(stock - 1, 0)
+      updatedStock: 0
     });
   } catch (error) {
     await connection.rollback();
