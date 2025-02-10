@@ -63,7 +63,7 @@ export const claimPrize = async (req, res) => {
 
     if (stock <= 0) {
       await connection.rollback();
-      return res.status(400).json({ message: "El premio no está disponible." });
+      return res.status(400).json({ message: "El premio no está disponible. No hay stock." });
     }
 
     if (userPoints < pointsRequired) {
@@ -81,29 +81,33 @@ export const claimPrize = async (req, res) => {
       [pointsRequired, userId]
     );
 
-    // Reducir stock del premio
-    await connection.query(
-      "UPDATE PRIZE SET STOCK = STOCK - 1 WHERE PRIZE_ID = ?",
-      [prizeId]
-    );
+    // Reducir stock del premio solo si aún hay stock
+    if (stock > 0) {
+      await connection.query(
+        "UPDATE PRIZE SET STOCK = STOCK - 1 WHERE PRIZE_ID = ?",
+        [prizeId]
+      );
+    }
 
     // Obtener la hora de Perú
     const peruTime = new Date(
       new Date().toLocaleString("en-US", { timeZone: "America/Lima" })
     );
 
-    // Insertar en la tabla de premios canjeados
-    await connection.query(
-      "INSERT INTO REDEEMED_PRIZES (ID_USER, PRIZE_ID, REDEEM_DATE) VALUES (?, ?, ?)",
-      [userId, prizeId, peruTime]
-    );
+    // Insertar en la tabla de premios canjeados solo si el stock es mayor a 0
+    if (stock > 0) {
+      await connection.query(
+        "INSERT INTO REDEEMED_PRIZES (ID_USER, PRIZE_ID, REDEEM_DATE) VALUES (?, ?, ?)",
+        [userId, prizeId, peruTime]
+      );
+    }
 
     await connection.commit(); 
 
     res.status(200).json({ 
       success: true, 
       message: "Premio reclamado exitosamente.", 
-      updatedStock: stock - 1 
+      updatedStock: Math.max(stock - 1, 0) 
     });
 
   } catch (error) {
@@ -114,4 +118,5 @@ export const claimPrize = async (req, res) => {
     connection.release();
   }
 };
+
 
