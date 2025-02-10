@@ -37,7 +37,6 @@ export const claimPrize = async (req, res) => {
   try {
     await connection.beginTransaction();
 
-    // Bloquear los puntos del usuario antes de la transacción
     const [userResult] = await connection.query(
       "SELECT POINTS FROM USERS WHERE ID_USER = ? FOR UPDATE",
       [userId]
@@ -50,7 +49,6 @@ export const claimPrize = async (req, res) => {
 
     const userPoints = userResult[0].POINTS;
 
-    // Bloquear la fila del premio antes de la transacción
     const [prizeResult] = await connection.query(
       "SELECT POINTS_REQUIRED, STOCK FROM PRIZE WHERE PRIZE_ID = ? FOR UPDATE",
       [prizeId]
@@ -65,7 +63,7 @@ export const claimPrize = async (req, res) => {
 
     if (stock <= 0) {
       await connection.rollback();
-      return res.status(400).json({ message: "El premio está agotado." });
+      return res.status(400).json({ message: "El premio no está disponible." });
     }
 
     if (userPoints < pointsRequired) {
@@ -75,34 +73,24 @@ export const claimPrize = async (req, res) => {
       });
     }
 
-    // Restar los puntos al usuario
+    // Restar puntos al usuario
     await connection.query(
       "UPDATE USERS SET POINTS = POINTS - ? WHERE ID_USER = ?",
       [pointsRequired, userId]
     );
 
-    // Reducir el stock del premio (ahora garantizamos que nunca será < 0)
+    // Reducir el stock del premio
     await connection.query(
-      "UPDATE PRIZE SET STOCK = STOCK - 1 WHERE PRIZE_ID = ? AND STOCK > 0",
+      "UPDATE PRIZE SET STOCK = STOCK - 1 WHERE PRIZE_ID = ?",
       [prizeId]
     );
 
-    // Verificar que se redujo correctamente el stock (en caso de concurrencia)
-    const [updatedPrize] = await connection.query(
-      "SELECT STOCK FROM PRIZE WHERE PRIZE_ID = ?",
-      [prizeId]
-    );
-
-    if (updatedPrize[0].STOCK < 0) {
-      await connection.rollback();
-      return res.status(400).json({ message: "Stock insuficiente." });
-    }
-
-    // Insertar el reclamo del premio en REDEEMED_PRIZES con la hora de Perú
+    // Obtener la hora actual de Perú
     const peruTime = new Date(
       new Date().toLocaleString("en-US", { timeZone: "America/Lima" })
     );
 
+    // Registrar en REDEEMED_PRIZES
     await connection.query(
       "INSERT INTO REDEEMED_PRIZES (ID_USER, PRIZE_ID, REDEEM_DATE) VALUES (?, ?, ?)",
       [userId, prizeId, peruTime]
@@ -113,7 +101,7 @@ export const claimPrize = async (req, res) => {
     res.status(200).json({
       success: true,
       message: "Premio reclamado exitosamente.",
-      updatedStock: updatedPrize[0].STOCK,
+      updatedStock: stock - 1,
     });
   } catch (error) {
     await connection.rollback();
@@ -123,6 +111,7 @@ export const claimPrize = async (req, res) => {
     connection.release();
   }
 };
+
 
 
 
