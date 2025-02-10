@@ -32,10 +32,10 @@ export const claimPrize = async (req, res) => {
     return res.status(400).json({ message: "ID del premio es requerido." });
   }
 
-  const connection = await pool.getConnection(); 
+  const connection = await pool.getConnection();
 
   try {
-    await connection.beginTransaction(); 
+    await connection.beginTransaction();
 
     const [userResult] = await connection.query(
       "SELECT POINTS FROM USERS WHERE ID_USER = ? FOR UPDATE",
@@ -73,45 +73,44 @@ export const claimPrize = async (req, res) => {
       });
     }
 
-    // Actualizar puntos del usuario
+    // Descontar puntos del usuario
     await connection.query(
       "UPDATE USERS SET POINTS = POINTS - ? WHERE ID_USER = ?",
       [pointsRequired, userId]
     );
 
-    // **Manteniendo tu lógica para actualizar el stock**
+    // Reducir el stock asegurando que no baje de 0
     await connection.query(
-      "UPDATE PRIZE SET STOCK = STOCK - 1 WHERE PRIZE_ID = ?",
+      "UPDATE PRIZE SET STOCK = GREATEST(STOCK - 1, 0) WHERE PRIZE_ID = ?",
       [prizeId]
     );
 
     // Obtener la hora actual de Perú en formato correcto
     const peruTime = new Date(
       new Date().toLocaleString("en-US", { timeZone: "America/Lima" })
-    ).toISOString().slice(0, 19).replace("T", " ");
+    )
+      .toISOString()
+      .slice(0, 19)
+      .replace("T", " ");
 
-    // **Insertar en REDEEMED_PRIZES después de actualizar todo correctamente**
+    // Insertar en REDEEMED_PRIZES
     await connection.query(
       "INSERT INTO REDEEMED_PRIZES (ID_USER, PRIZE_ID, REDEEM_DATE) VALUES (?, ?, ?)",
       [userId, prizeId, peruTime]
     );
 
-    await connection.commit(); 
+    await connection.commit();
 
-    res.status(200).json({ 
-      success: true, 
-      message: "Premio reclamado exitosamente.", 
-      updatedStock: stock - 1 
-    });
-
+    res.status(200).json({ success: true, message: "Premio reclamado exitosamente." });
   } catch (error) {
-    await connection.rollback(); 
+    await connection.rollback();
     console.error("Error al reclamar premio:", error);
     res.status(500).json({ error: "Error al reclamar el premio." });
   } finally {
     connection.release();
   }
 };
+
 
 
 
