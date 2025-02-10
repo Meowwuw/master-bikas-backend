@@ -37,6 +37,7 @@ export const claimPrize = async (req, res) => {
   try {
     await connection.beginTransaction();
 
+    // Obtener puntos del usuario
     const [userResult] = await connection.query(
       "SELECT POINTS FROM USERS WHERE ID_USER = ? FOR UPDATE",
       [userId]
@@ -49,8 +50,9 @@ export const claimPrize = async (req, res) => {
 
     const userPoints = userResult[0].POINTS;
 
+    // Obtener detalles del premio
     const [prizeResult] = await connection.query(
-      "SELECT POINTS_REQUIRED, STOCK FROM PRIZE WHERE PRIZE_ID = ? FOR UPDATE",
+      "SELECT PRIZE_NAME, POINTS_REQUIRED, STOCK FROM PRIZE WHERE PRIZE_ID = ? FOR UPDATE",
       [prizeId]
     );
 
@@ -59,13 +61,15 @@ export const claimPrize = async (req, res) => {
       return res.status(404).json({ message: "Premio no encontrado." });
     }
 
-    const { POINTS_REQUIRED: pointsRequired, STOCK: stock } = prizeResult[0];
+    const { PRIZE_NAME: prizeName, POINTS_REQUIRED: pointsRequired, STOCK: stock } = prizeResult[0];
 
+    // Validar stock disponible
     if (stock <= 0) {
       await connection.rollback();
       return res.status(400).json({ message: "El premio no está disponible." });
     }
 
+    // Validar puntos suficientes
     if (userPoints < pointsRequired) {
       await connection.rollback();
       return res.status(400).json({
@@ -85,10 +89,21 @@ export const claimPrize = async (req, res) => {
       [prizeId]
     );
 
-    // Obtener la hora actual de Perú
+    // Validar que el stock se actualizó correctamente
+    const [updatedStock] = await connection.query(
+      "SELECT STOCK FROM PRIZE WHERE PRIZE_ID = ?",
+      [prizeId]
+    );
+
+    if (updatedStock[0].STOCK < 0) {
+      await connection.rollback();
+      return res.status(500).json({ message: "Error en la actualización del stock." });
+    }
+
+    // Obtener la hora actual de Perú en formato compatible con MySQL
     const peruTime = new Date(
       new Date().toLocaleString("en-US", { timeZone: "America/Lima" })
-    );
+    ).toISOString().slice(0, 19).replace("T", " ");
 
     // Registrar en REDEEMED_PRIZES
     await connection.query(
@@ -101,7 +116,7 @@ export const claimPrize = async (req, res) => {
     res.status(200).json({
       success: true,
       message: "Premio reclamado exitosamente.",
-      updatedStock: stock - 1,
+      prize: { id: prizeId, name: prizeName, updatedStock: updatedStock[0].STOCK },
     });
   } catch (error) {
     await connection.rollback();
