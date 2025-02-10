@@ -73,18 +73,25 @@ export const claimPrize = async (req, res) => {
       });
     }
 
+    // 🟢 Restar puntos al usuario
     await connection.query(
       "UPDATE USERS SET POINTS = POINTS - ? WHERE ID_USER = ?",
       [pointsRequired, userId]
     );
 
-    if (stock > 0) {
-      await connection.query(
-        "UPDATE PRIZE SET STOCK = STOCK - 1 WHERE PRIZE_ID = ?",
-        [prizeId]
-      );
-    }
 
+    // 🟢 Obtener la hora de Perú en formato MySQL (YYYY-MM-DD HH:MM:SS)
+    const peruTime = new Date(
+      new Date().toLocaleString("en-US", { timeZone: "America/Lima" })
+    ).toISOString().slice(0, 19).replace("T", " ");
+
+    // 🟢 Insertar en la tabla REDEEMED_PRIZES
+    await connection.query(
+      "INSERT INTO REDEEMED_PRIZES (ID_USER, PRIZE_ID, REDEEM_DATE) VALUES (?, ?, ?)",
+      [userId, prizeId, peruTime]
+    );
+
+    // Confirmar la transacción
     await connection.commit();
 
     res.status(200).json({
@@ -100,6 +107,7 @@ export const claimPrize = async (req, res) => {
     connection.release();
   }
 };
+
 
 
 
