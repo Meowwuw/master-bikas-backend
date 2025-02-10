@@ -52,11 +52,11 @@ export const claimPrize = async (req, res) => {
 
     // Verificar premio y stock
     const [prizeResult] = await connection.query(
-      "SELECT POINTS_REQUIRED, STOCK FROM PRIZE WHERE PRIZE_ID = ? AND STOCK > 0 FOR UPDATE",
+      "SELECT POINTS_REQUIRED, STOCK FROM PRIZE WHERE PRIZE_ID = ? FOR UPDATE",
       [prizeId]
     );
 
-    if (prizeResult.length === 0) {
+    if (prizeResult.length === 0 || prizeResult[0].STOCK <= 0) {
       await connection.rollback();
       return res.status(404).json({ message: "Premio no encontrado o sin stock disponible." });
     }
@@ -76,16 +76,11 @@ export const claimPrize = async (req, res) => {
       [pointsRequired, userId]
     );
 
-    // Actualizar stock del premio (asegurando que solo se actualice si stock = 1)
-    const [updateResult] = await connection.query(
-      "UPDATE PRIZE SET STOCK = 0 WHERE PRIZE_ID = ? AND STOCK = 1",
+    // Actualizar stock del premio asegurando que no baje de 0
+    await connection.query(
+      "UPDATE PRIZE SET STOCK = GREATEST(STOCK - 1, 0) WHERE PRIZE_ID = ?",
       [prizeId]
     );
-
-    if (updateResult.affectedRows === 0) {
-      await connection.rollback();
-      return res.status(400).json({ message: "El premio ya no está disponible." });
-    }
 
     // Obtener la hora actual de Perú
     const peruTime = new Date(
@@ -103,7 +98,7 @@ export const claimPrize = async (req, res) => {
     res.status(200).json({
       success: true,
       message: "Premio reclamado exitosamente.",
-      updatedStock: 0
+      updatedStock: Math.max(stock - 1, 0) // Enviar el stock actualizado sin valores negativos
     });
   } catch (error) {
     await connection.rollback();
@@ -113,6 +108,7 @@ export const claimPrize = async (req, res) => {
     connection.release();
   }
 };
+
 
 
 
