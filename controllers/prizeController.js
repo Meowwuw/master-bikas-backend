@@ -37,26 +37,7 @@ export const claimPrize = async (req, res) => {
   try {
     await connection.beginTransaction();
 
-    // 1️⃣ Obtener detalles del premio y bloquear la fila PRIMERO
-    const [prizeResult] = await connection.query(
-      "SELECT PRIZE_NAME, POINTS_REQUIRED, STOCK FROM PRIZE WHERE PRIZE_ID = ? FOR UPDATE",
-      [prizeId]
-    );
-
-    if (prizeResult.length === 0) {
-      await connection.rollback();
-      return res.status(404).json({ message: "Premio no encontrado." });
-    }
-
-    const { PRIZE_NAME: prizeName, POINTS_REQUIRED: pointsRequired, STOCK: stock } = prizeResult[0];
-
-    // 2️⃣ Validar stock disponible antes de continuar
-    if (stock <= 0) {
-      await connection.rollback();
-      return res.status(400).json({ message: "El premio ya no está disponible." });
-    }
-
-    // 3️⃣ Obtener puntos del usuario y bloquear la fila
+    // Verificar usuario y puntos
     const [userResult] = await connection.query(
       "SELECT POINTS FROM USERS WHERE ID_USER = ? FOR UPDATE",
       [userId]
@@ -69,7 +50,24 @@ export const claimPrize = async (req, res) => {
 
     const userPoints = userResult[0].POINTS;
 
-    // 4️⃣ Validar que el usuario tenga puntos suficientes
+    // Verificar premio y stock
+    const [prizeResult] = await connection.query(
+      "SELECT POINTS_REQUIRED, STOCK FROM PRIZE WHERE PRIZE_ID = ? FOR UPDATE",
+      [prizeId]
+    );
+
+    if (prizeResult.length === 0) {
+      await connection.rollback();
+      return res.status(404).json({ message: "Premio no encontrado." });
+    }
+
+    const { POINTS_REQUIRED: pointsRequired, STOCK: stock } = prizeResult[0];
+
+    if (stock <= 0) {
+      await connection.rollback();
+      return res.status(400).json({ message: "El premio no está disponible." });
+    }
+
     if (userPoints < pointsRequired) {
       await connection.rollback();
       return res.status(400).json({
@@ -77,46 +75,40 @@ export const claimPrize = async (req, res) => {
       });
     }
 
-    // 5️⃣ Reducir el stock del premio usando UPDATE con condición
-    const [updateResult] = await connection.query(
-      "UPDATE PRIZE SET STOCK = STOCK - 1 WHERE PRIZE_ID = ? AND STOCK > 0",
-      [prizeId]
-    );
-
-    if (updateResult.affectedRows === 0) {
-      await connection.rollback();
-      return res.status(400).json({ message: "El premio ya no está disponible." });
-    }
-
-    // 6️⃣ Restar puntos al usuario
+    // Actualizar puntos del usuario
     await connection.query(
       "UPDATE USERS SET POINTS = POINTS - ? WHERE ID_USER = ?",
       [pointsRequired, userId]
     );
 
-    // 7️⃣ Obtener la hora actual de Perú en formato MySQL
+    // Actualizar stock del premio
+    await connection.query(
+      "UPDATE PRIZE SET STOCK = STOCK - 1 WHERE PRIZE_ID = ?",
+      [prizeId]
+    );
+
+    // Obtener la hora actual de Perú
     const peruTime = new Date(
       new Date().toLocaleString("en-US", { timeZone: "America/Lima" })
     ).toISOString().slice(0, 19).replace("T", " ");
 
-    // 8️⃣ Registrar la redención en REDEEMED_PRIZES
+    // Registrar la redención del premio
     await connection.query(
       "INSERT INTO REDEEMED_PRIZES (ID_USER, PRIZE_ID, REDEEM_DATE) VALUES (?, ?, ?)",
       [userId, prizeId, peruTime]
     );
 
-    // 9️⃣ Confirmar la transacción
     await connection.commit();
 
     res.status(200).json({
       success: true,
       message: "Premio reclamado exitosamente.",
-      prize: { id: prizeId, name: prizeName, updatedStock: stock - 1 },
+      updatedStock: stock - 1
     });
   } catch (error) {
     await connection.rollback();
     console.error("Error al reclamar premio:", error);
-    res.status(500).json({ message: "Error al reclamar el premio." });
+    res.status(500).json({ error: "Error al reclamar el premio." });
   } finally {
     connection.release();
   }
