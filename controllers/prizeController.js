@@ -32,11 +32,12 @@ export const claimPrize = async (req, res) => {
     return res.status(400).json({ message: "ID del premio es requerido." });
   }
 
-  const connection = await pool.getConnection(); 
+  const connection = await pool.getConnection();
 
   try {
-    await connection.beginTransaction(); 
+    await connection.beginTransaction();
 
+    // Obtener los puntos del usuario con bloqueo
     const [userResult] = await connection.query(
       "SELECT POINTS FROM USERS WHERE ID_USER = ? FOR UPDATE",
       [userId]
@@ -49,6 +50,7 @@ export const claimPrize = async (req, res) => {
 
     const userPoints = userResult[0].POINTS;
 
+    // Obtener el premio con bloqueo
     const [prizeResult] = await connection.query(
       "SELECT POINTS_REQUIRED, STOCK FROM PRIZE WHERE PRIZE_ID = ? FOR UPDATE",
       [prizeId]
@@ -68,19 +70,20 @@ export const claimPrize = async (req, res) => {
 
     if (userPoints < pointsRequired) {
       await connection.rollback();
-      return res
-        .status(400)
-        .json({
-          message: "No tienes suficientes puntos para reclamar este premio.",
-        });
+      return res.status(400).json({
+        message: "No tienes suficientes puntos para reclamar este premio.",
+      });
     }
 
+    // Actualizar puntos del usuario
     await connection.query(
       "UPDATE USERS SET POINTS = POINTS - ? WHERE ID_USER = ?",
       [pointsRequired, userId]
     );
+
+    // Asegurar que el stock no sea negativo
     await connection.query(
-      "UPDATE PRIZE SET STOCK = STOCK - 1 WHERE PRIZE_ID = ?",
+      "UPDATE PRIZE SET STOCK = GREATEST(STOCK - 1, 0) WHERE PRIZE_ID = ?",
       [prizeId]
     );
 
@@ -89,23 +92,28 @@ export const claimPrize = async (req, res) => {
       new Date().toLocaleString("en-US", { timeZone: "America/Lima" })
     ).toISOString().slice(0, 19).replace("T", " ");
 
-    // Insertar el reclamo en la tabla REDEEMED_PRIZES
+    // Insertar la redención en la tabla REDEEMED_PRIZES
     await connection.query(
       "INSERT INTO REDEEMED_PRIZES (ID_USER, PRIZE_ID, REDEEM_DATE) VALUES (?, ?, ?)",
       [userId, prizeId, peruTime]
     );
 
-    await connection.commit(); 
+    await connection.commit();
 
-    res.status(200).json({ success: true, message: "Premio reclamado exitosamente.", updatedStock: stock - 1 });
+    res.status(200).json({
+      success: true,
+      message: "Premio reclamado exitosamente.",
+      updatedStock: Math.max(stock - 1, 0),
+    });
   } catch (error) {
-    await connection.rollback(); 
+    await connection.rollback();
     console.error("Error al reclamar premio:", error);
     res.status(500).json({ error: "Error al reclamar el premio." });
   } finally {
     connection.release();
   }
 };
+
 
 
 
