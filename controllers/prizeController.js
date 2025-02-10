@@ -37,7 +37,6 @@ export const claimPrize = async (req, res) => {
   try {
     await connection.beginTransaction();
 
-    // 🔹 Bloquear la fila del usuario
     const [userResult] = await connection.query(
       "SELECT POINTS FROM USERS WHERE ID_USER = ? FOR UPDATE",
       [userId]
@@ -50,9 +49,8 @@ export const claimPrize = async (req, res) => {
 
     const userPoints = userResult[0].POINTS;
 
-    // 🔹 Bloquear la fila del premio
     const [prizeResult] = await connection.query(
-      "SELECT POINTS_REQUIRED, STOCK FROM PRIZE WHERE PRIZE_ID = ? FOR UPDATE",
+      "SELECT PRIZE_NAME, POINTS_REQUIRED, STOCK FROM PRIZE WHERE PRIZE_ID = ? FOR UPDATE",
       [prizeId]
     );
 
@@ -61,11 +59,11 @@ export const claimPrize = async (req, res) => {
       return res.status(404).json({ message: "Premio no encontrado." });
     }
 
-    const { POINTS_REQUIRED: pointsRequired, STOCK: stock } = prizeResult[0];
+    const { PRIZE_NAME: prizeName, POINTS_REQUIRED: pointsRequired, STOCK: stock } = prizeResult[0];
 
     if (stock <= 0) {
       await connection.rollback();
-      return res.status(400).json({ message: "El premio no está disponible." });
+      return res.status(400).json({ message: "El premio ya no está disponible." });
     }
 
     if (userPoints < pointsRequired) {
@@ -75,35 +73,33 @@ export const claimPrize = async (req, res) => {
       });
     }
 
-    // 🔹 Restar puntos al usuario
+    const peruTime = new Date(
+      new Date().toLocaleString("en-US", { timeZone: "America/Lima" })
+    ).toISOString().slice(0, 19).replace("T", " ");
+
+    await connection.query(
+      "INSERT INTO REDEEMED_PRIZES (ID_USER, PRIZE_ID, REDEEM_DATE) VALUES (?, ?, ?)",
+      [userId, prizeId, peruTime]
+    );
+    
     await connection.query(
       "UPDATE USERS SET POINTS = POINTS - ? WHERE ID_USER = ?",
       [pointsRequired, userId]
     );
 
-    // 🔹 Asegurar que el stock nunca sea menor a 0
-    await connection.query(
-      "UPDATE PRIZE SET STOCK = GREATEST(STOCK - 1, 0) WHERE PRIZE_ID = ?",
-      [prizeId]
-    );
-
-    // 🔹 Obtener la fecha y hora de Perú en formato MySQL
-    const peruTime = new Date(
-      new Date().toLocaleString("en-US", { timeZone: "America/Lima" })
-    ).toISOString().slice(0, 19).replace("T", " ");
-
-    // 🔹 Insertar la redención en la tabla REDEEMED_PRIZES
-    await connection.query(
-      "INSERT INTO REDEEMED_PRIZES (ID_USER, PRIZE_ID, REDEEM_DATE, STATUS) VALUES (?, ?, ?, ?)",
-      [userId, prizeId, peruTime, 'PENDING']
-    );
+    if (stock > 0) {
+      await connection.query(
+        "UPDATE PRIZE SET STOCK = STOCK - 1 WHERE PRIZE_ID = ?",
+        [prizeId]
+      );
+    }
 
     await connection.commit();
 
     res.status(200).json({
       success: true,
       message: "Premio reclamado exitosamente.",
-      updatedStock: Math.max(stock - 1, 0), 
+      prize: { id: prizeId, name: prizeName, updatedStock: Math.max(stock - 1, 0) },
     });
   } catch (error) {
     await connection.rollback();
@@ -113,7 +109,6 @@ export const claimPrize = async (req, res) => {
     connection.release();
   }
 };
-
 
 
 
