@@ -15,13 +15,14 @@ export const getAvailablePrizes = async (req, res) => {
             IMAGE_URL as imageUrl
           FROM PRIZE
           ORDER BY CREATED_AT DESC
-        `);
+        `); 
     res.status(200).json({ prizes: results });
   } catch (error) {
     console.error("Error al obtener los premios:", error);
     res.status(500).json({ error: "Error al obtener los premios." });
   }
 };
+
 
 export const claimPrize = async (req, res) => {
   const { prizeId } = req.body;
@@ -77,28 +78,25 @@ export const claimPrize = async (req, res) => {
       [pointsRequired, userId]
     );
 
-    await connection.query(
-      "INSERT INTO REDEEMED_PRIZES (ID_USER, PRIZE_ID, REDEEM_DATE, STATUS) VALUES (?, ?, ?, ?)",
-      [
-        userId,
-        prizeId,
-        new Date(
-          new Date().toLocaleString("en-US", { timeZone: "America/Lima" })
-        ),
-        "PENDING",
-      ]
-    );
 
     await connection.query(
       "UPDATE PRIZE SET STOCK = GREATEST(STOCK - 1, 0) WHERE PRIZE_ID = ?",
       [prizeId]
     );
+
+    
+    // 🔹 Insertar la redención en la tabla REDEEMED_PRIZES
+await connection.query(
+  "INSERT INTO REDEEMED_PRIZES (ID_USER, PRIZE_ID, REDEEM_DATE, STATUS) VALUES (?, ?, ?, ?)",
+  [userId, prizeId, new Date(new Date().toLocaleString("en-US", { timeZone: "America/Lima" })), 'PENDING']
+);
+
     await connection.commit();
 
     res.status(200).json({
       success: true,
       message: "Premio reclamado exitosamente.",
-      updatedStock: Math.max(stock - 1, 0),
+      updatedStock: Math.max(stock - 1, 0), 
     });
   } catch (error) {
     await connection.rollback();
@@ -108,3 +106,10 @@ export const claimPrize = async (req, res) => {
     connection.release();
   }
 };
+
+
+
+
+
+
+
