@@ -73,15 +73,6 @@ export const claimPrize = async (req, res) => {
       });
     }
 
-    const peruTime = new Date(
-      new Date().toLocaleString("en-US", { timeZone: "America/Lima" })
-    ).toISOString().slice(0, 19).replace("T", " ");
-
-    await connection.query(
-      "INSERT INTO REDEEMED_PRIZES (ID_USER, PRIZE_ID, REDEEM_DATE) VALUES (?, ?, ?)",
-      [userId, prizeId, peruTime]
-    );
-    
     await connection.query(
       "UPDATE USERS SET POINTS = POINTS - ? WHERE ID_USER = ?",
       [pointsRequired, userId]
