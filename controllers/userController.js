@@ -290,7 +290,10 @@ export const updateUserProfile = async (req, res) => {
   } = req.body;
 
   try {
-    // Verificar si el usuario existe y si ya recibió el bono
+    // ✅ Establecer zona horaria de Perú en la sesión actual
+    await pool.query("SET time_zone = '-5:00'");
+
+    // ✅ Verificar si el usuario existe y si ya recibió el bono
     const [user] = await pool.query(
       "SELECT BONUS FROM USERS WHERE ID_USER = ?",
       [userId]
@@ -302,7 +305,7 @@ export const updateUserProfile = async (req, res) => {
 
     const hasBonus = user[0].BONUS;
 
-    // Actualizar el perfil del usuario
+    // ✅ Actualizar el perfil del usuario con hora de Perú
     const query = `
         UPDATE USERS
         SET 
@@ -315,7 +318,7 @@ export const updateUserProfile = async (req, res) => {
           NICKNAME = ?,
           SCHOOL_NAME = ?,
           ADDRESS_ID = ?,
-          UPDATED_AT = CURRENT_TIMESTAMP
+          UPDATED_AT = CONVERT_TZ(NOW(), 'UTC', 'America/Lima')
         WHERE ID_USER = ?`;
 
     const values = [
@@ -333,11 +336,11 @@ export const updateUserProfile = async (req, res) => {
 
     await pool.query(query, values);
 
-    // Si el usuario no ha recibido el bono, asignar 10 puntos
+    // ✅ Si el usuario no ha recibido el bono, asignar 10 puntos con hora de Perú
     if (!hasBonus) {
       const bonusQuery = `
           UPDATE USERS 
-          SET POINTS = POINTS + 10, BONUS = 1
+          SET POINTS = POINTS + 10, BONUS = 1, UPDATED_AT = CONVERT_TZ(NOW(), 'UTC', 'America/Lima')
           WHERE ID_USER = ?`;
       await pool.query(bonusQuery, [userId]);
 
