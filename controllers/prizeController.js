@@ -32,10 +32,10 @@ export const claimPrize = async (req, res) => {
     return res.status(400).json({ message: "ID del premio es requerido." });
   }
 
-  const connection = await pool.getConnection(); 
+  const connection = await pool.getConnection();
 
   try {
-    await connection.beginTransaction(); 
+    await connection.beginTransaction();
 
     const [userResult] = await connection.query(
       "SELECT POINTS FROM USERS WHERE ID_USER = ? FOR UPDATE",
@@ -68,33 +68,47 @@ export const claimPrize = async (req, res) => {
 
     if (userPoints < pointsRequired) {
       await connection.rollback();
-      return res
-        .status(400)
-        .json({
-          message: "No tienes suficientes puntos para reclamar este premio.",
-        });
+      return res.status(400).json({
+        message: "No tienes suficientes puntos para reclamar este premio.",
+      });
     }
 
     await connection.query(
       "UPDATE USERS SET POINTS = POINTS - ? WHERE ID_USER = ?",
       [pointsRequired, userId]
     );
+
+    // ✅ Asegurar que el stock nunca sea menor a 0
     await connection.query(
-      "UPDATE PRIZE SET STOCK = STOCK - 1 WHERE PRIZE_ID = ?",
+      "UPDATE PRIZE SET STOCK = GREATEST(STOCK - 1, 0) WHERE PRIZE_ID = ?",
       [prizeId]
     );
 
-    await connection.commit(); 
+    const peruTime = new Date(
+      new Date().toLocaleString("en-US", { timeZone: "America/Lima" })
+    ).toISOString().slice(0, 19).replace("T", " ");
 
-    res.status(200).json({ success: true, message: "Premio reclamado exitosamente.", updatedStock: stock - 1 });
+    await connection.query(
+      "INSERT INTO REDEEMED_PRIZES (ID_USER, PRIZE_ID, REDEEM_DATE) VALUES (?, ?, ?)",
+      [userId, prizeId, peruTime]
+    );
+
+    await connection.commit();
+
+    res.status(200).json({
+      success: true,
+      message: "Premio reclamado exitosamente.",
+      updatedStock: Math.max(stock - 1, 0), // Solo para la respuesta
+    });
   } catch (error) {
-    await connection.rollback(); 
+    await connection.rollback();
     console.error("Error al reclamar premio:", error);
     res.status(500).json({ error: "Error al reclamar el premio." });
   } finally {
     connection.release();
   }
 };
+
 
 
 
