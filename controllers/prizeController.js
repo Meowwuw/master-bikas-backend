@@ -15,7 +15,7 @@ export const getAvailablePrizes = async (req, res) => {
             IMAGE_URL as imageUrl
           FROM PRIZE
           ORDER BY CREATED_AT DESC
-        `); // Se eliminó el WHERE STOCK > 0
+        `); 
     res.status(200).json({ prizes: results });
   } catch (error) {
     console.error("Error al obtener los premios:", error);
@@ -75,18 +75,37 @@ export const claimPrize = async (req, res) => {
         });
     }
 
+    // Restar puntos al usuario
     await connection.query(
       "UPDATE USERS SET POINTS = POINTS - ? WHERE ID_USER = ?",
       [pointsRequired, userId]
     );
+
+    // Reducir stock del premio
     await connection.query(
       "UPDATE PRIZE SET STOCK = STOCK - 1 WHERE PRIZE_ID = ?",
       [prizeId]
     );
 
+    // Obtener la hora de Perú
+    const peruTime = new Date(
+      new Date().toLocaleString("en-US", { timeZone: "America/Lima" })
+    );
+
+    // Insertar en la tabla de premios canjeados
+    await connection.query(
+      "INSERT INTO REDEEMED_PRIZES (ID_USER, PRIZE_ID, REDEEM_DATE) VALUES (?, ?, ?)",
+      [userId, prizeId, peruTime]
+    );
+
     await connection.commit(); 
 
-    res.status(200).json({ success: true, message: "Premio reclamado exitosamente.", updatedStock: stock - 1 });
+    res.status(200).json({ 
+      success: true, 
+      message: "Premio reclamado exitosamente.", 
+      updatedStock: stock - 1 
+    });
+
   } catch (error) {
     await connection.rollback(); 
     console.error("Error al reclamar premio:", error);
@@ -95,3 +114,4 @@ export const claimPrize = async (req, res) => {
     connection.release();
   }
 };
+
