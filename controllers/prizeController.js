@@ -84,6 +84,17 @@ export const claimPrize = async (req, res) => {
       [prizeId]
     );
 
+    // Obtener la hora actual de Perú en formato YYYY-MM-DD HH:MM:SS
+    const peruTime = new Date(
+      new Date().toLocaleString("en-US", { timeZone: "America/Lima" })
+    ).toISOString().slice(0, 19).replace("T", " ");
+
+    // Insertar el reclamo en la tabla REDEEMED_PRIZES
+    await connection.query(
+      "INSERT INTO REDEEMED_PRIZES (ID_USER, PRIZE_ID, REDEEM_DATE) VALUES (?, ?, ?)",
+      [userId, prizeId, peruTime]
+    );
+
     await connection.commit(); 
 
     res.status(200).json({ success: true, message: "Premio reclamado exitosamente.", updatedStock: stock - 1 });
